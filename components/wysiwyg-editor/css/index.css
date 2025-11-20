@@ -1,0 +1,21 @@
+/* components/wysiwyg-editor/css/index.css */
+@import url('./quill.css');
+/* Исправление для курсора в Quill */
+.ql-editor {
+    caret-color: auto !important;
+}
+
+.ql-editor p {
+    position: relative;
+}
+
+/* Убедитесь, что пробелы в конце параграфа не влияют на курсор */
+.ql-editor p:empty::before {
+    content: none !important;
+}
+
+/* Корректное отображение пустых строк */
+.ql-editor .ql-blank::before {
+    left: 15px !important;
+    right: 15px !important;
+}
