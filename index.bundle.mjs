@@ -1702,47 +1702,55 @@ var BaseComponent = class _BaseComponent extends HTMLElement {
 // wysiwyg/public/components/wysiwyg-editor/template/index.mjs
 var template_exports = {};
 __export(template_exports, {
+  advancedTemplate: () => advancedTemplate,
+  compactTemplate: () => compactTemplate,
   defaultTemplate: () => defaultTemplate,
   editorOnlyTemplate: () => editorOnlyTemplate,
   errorTemplate: () => errorTemplate,
   loadingTemplate: () => loadingTemplate,
   minimalTemplate: () => minimalTemplate,
+  readOnlyTemplate: () => readOnlyTemplate,
   statsTemplate: () => statsTemplate,
   toolbarTemplate: () => toolbarTemplate
 });
-function defaultTemplate({ state = {} }) {
+async function defaultTemplate({ state = {} }) {
   const {
     wordCount = 0,
     charCount = 0,
     paragraphCount = 0,
     formats = [],
-    id = ""
+    id = "",
+    theme = "light",
+    readOnly = false
   } = state;
   return `
-        <div class="wysiwyg-editor">
+        <div class="wysiwyg-editor" data-theme="${theme}">
             <div class="card full-width">
                 <div class="card-header">
                     <h3 class="card-title">
                         <span class="card-icon">\u{1F4DD}</span>
                         WYSIWYG Editor
+                        ${readOnly ? '<span class="read-only-badge">\u0422\u043E\u043B\u044C\u043A\u043E \u0447\u0442\u0435\u043D\u0438\u0435</span>' : ""}
                     </h3>
                     <div class="action-bar">
-                        <button class="btn btn-success export-html" title="Export as HTML">
+                        <button class="btn btn-success export-html" title="Export as HTML" ${readOnly ? "disabled" : ""}>
                             <span>\u{1F4C4}</span> Export HTML
                         </button>
-                        <button class="btn btn-info export-text" title="Export as Text">
+                        <button class="btn btn-info export-text" title="Export as Text" ${readOnly ? "disabled" : ""}>
                             <span>\u{1F4DD}</span> Export Text
                         </button>
                         <button class="btn btn-warning theme-toggle" title="Toggle Theme">
                             <span>\u{1F313}</span> Theme
                         </button>
-                        <button class="btn btn-danger clear-editor" title="Clear Editor">
+                        <button class="btn btn-danger clear-editor" title="Clear Editor" ${readOnly ? "disabled" : ""}>
                             <span>\u{1F5D1}\uFE0F</span> Clear
                         </button>
                     </div>
                 </div>
                 <div class="card-content">
-                    <div class="editor-container"><div id="editor-${id}" class="quill-editor"></div></div>
+                    <div class="editor-container">
+                        <div id="editor-${id}" class="quill-editor"></div>
+                    </div>
                     <div class="stats-section">
                         <div class="stats-grid">
                             <div class="stat-item">
@@ -1772,10 +1780,10 @@ function defaultTemplate({ state = {} }) {
     `;
 }
 __name(defaultTemplate, "defaultTemplate");
-function minimalTemplate({ state = {} }) {
-  const { id = "" } = state;
+async function minimalTemplate({ state = {} }) {
+  const { id = "", theme = "light" } = state;
   return `
-        <div class="wysiwyg-editor">
+        <div class="wysiwyg-editor" data-theme="${theme}">
             <div class="card full-width">
                 <div class="card-content">
                     <div class="editor-container">
@@ -1787,13 +1795,18 @@ function minimalTemplate({ state = {} }) {
     `;
 }
 __name(minimalTemplate, "minimalTemplate");
-function editorOnlyTemplate({ state = {} }) {
-  const { id = "" } = state;
-  return `<div class="wysiwyg-editor"><div class="editor-container"><div id="editor-${id}" class="quill-editor"></div></div></div>
+async function editorOnlyTemplate({ state = {} }) {
+  const { id = "", theme = "light" } = state;
+  return `
+        <div class="wysiwyg-editor" data-theme="${theme}">
+            <div class="editor-container">
+                <div id="editor-${id}" class="quill-editor"></div>
+            </div>
+        </div>
     `;
 }
 __name(editorOnlyTemplate, "editorOnlyTemplate");
-function statsTemplate({ state = {} }) {
+async function statsTemplate({ state = {} }) {
   const {
     wordCount = 0,
     charCount = 0,
@@ -1827,26 +1840,27 @@ function statsTemplate({ state = {} }) {
     `;
 }
 __name(statsTemplate, "statsTemplate");
-function toolbarTemplate({ state = {} }) {
-  const { theme = "light" } = state;
+async function toolbarTemplate({ state = {} }) {
+  const { theme = "light", readOnly = false } = state;
   return `
         <div class="card-header">
             <h3 class="card-title">
                 <span class="card-icon">\u{1F4DD}</span>
                 WYSIWYG Editor
                 <span class="theme-badge">${theme === "light" ? "\u2600\uFE0F" : "\u{1F319}"}</span>
+                ${readOnly ? '<span class="read-only-badge">\u0422\u043E\u043B\u044C\u043A\u043E \u0447\u0442\u0435\u043D\u0438\u0435</span>' : ""}
             </h3>
             <div class="action-bar">
-                <button class="btn btn-success export-html" title="Export as HTML">
+                <button class="btn btn-success export-html" title="Export as HTML" ${readOnly ? "disabled" : ""}>
                     <span>\u{1F4C4}</span> Export HTML
                 </button>
-                <button class="btn btn-info export-text" title="Export as Text">
+                <button class="btn btn-info export-text" title="Export as Text" ${readOnly ? "disabled" : ""}>
                     <span>\u{1F4DD}</span> Export Text
                 </button>
                 <button class="btn btn-warning theme-toggle" title="Toggle Theme">
                     <span>\u{1F313}</span> Theme
                 </button>
-                <button class="btn btn-danger clear-editor" title="Clear Editor">
+                <button class="btn btn-danger clear-editor" title="Clear Editor" ${readOnly ? "disabled" : ""}>
                     <span>\u{1F5D1}\uFE0F</span> Clear
                 </button>
             </div>
@@ -1854,10 +1868,13 @@ function toolbarTemplate({ state = {} }) {
     `;
 }
 __name(toolbarTemplate, "toolbarTemplate");
-function loadingTemplate({ state = {} }) {
-  const { message = "Loading editor..." } = state;
+async function loadingTemplate({ state = {} }) {
+  const {
+    message = "Loading editor...",
+    theme = "light"
+  } = state;
   return `
-        <div class="wysiwyg-editor">
+        <div class="wysiwyg-editor" data-theme="${theme}">
             <div class="card full-width">
                 <div class="card-content">
                     <div class="loading-state">
@@ -1870,13 +1887,14 @@ function loadingTemplate({ state = {} }) {
     `;
 }
 __name(loadingTemplate, "loadingTemplate");
-function errorTemplate({ state = {} }) {
+async function errorTemplate({ state = {} }) {
   const {
     error = "Unknown error",
-    solution = "Please try refreshing the page"
+    solution = "Please try refreshing the page",
+    theme = "light"
   } = state;
   return `
-        <div class="wysiwyg-editor">
+        <div class="wysiwyg-editor" data-theme="${theme}">
             <div class="card full-width">
                 <div class="card-content">
                     <div class="error-state">
@@ -1894,6 +1912,128 @@ function errorTemplate({ state = {} }) {
     `;
 }
 __name(errorTemplate, "errorTemplate");
+async function readOnlyTemplate({ state = {} }) {
+  const {
+    id = "",
+    theme = "light",
+    value = ""
+  } = state;
+  return `
+        <div class="wysiwyg-editor" data-theme="${theme}">
+            <div class="card full-width">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <span class="card-icon">\u{1F4C4}</span>
+                        WYSIWYG Viewer
+                        <span class="read-only-badge">\u0422\u043E\u043B\u044C\u043A\u043E \u0447\u0442\u0435\u043D\u0438\u0435</span>
+                    </h3>
+                </div>
+                <div class="card-content">
+                    <div class="editor-container read-only">
+                        <div id="editor-${id}" class="quill-editor">${value}</div>
+                    </div>
+                    <div class="read-only-notice">
+                        <span class="notice-icon">\u{1F441}\uFE0F</span>
+                        \u042D\u0442\u043E\u0442 \u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442 \u0434\u043E\u0441\u0442\u0443\u043F\u0435\u043D \u0442\u043E\u043B\u044C\u043A\u043E \u0434\u043B\u044F \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u0430
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+__name(readOnlyTemplate, "readOnlyTemplate");
+async function compactTemplate({ state = {} }) {
+  const {
+    id = "",
+    theme = "light",
+    placeholder = "Start typing..."
+  } = state;
+  return `
+        <div class="wysiwyg-editor compact" data-theme="${theme}">
+            <div class="card">
+                <div class="card-content">
+                    <div class="editor-container compact">
+                        <div id="editor-${id}" class="quill-editor" data-placeholder="${placeholder}"></div>
+                    </div>
+                    <div class="compact-stats">
+                        <span class="word-count" id="wordCount">0 words</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+__name(compactTemplate, "compactTemplate");
+async function advancedTemplate({ state = {} }) {
+  const {
+    id = "",
+    theme = "light",
+    readOnly = false
+  } = state;
+  return `
+        <div class="wysiwyg-editor advanced" data-theme="${theme}">
+            <div class="card full-width">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <span class="card-icon">\u270F\uFE0F</span>
+                        Advanced Editor
+                        ${readOnly ? '<span class="read-only-badge">\u0422\u043E\u043B\u044C\u043A\u043E \u0447\u0442\u0435\u043D\u0438\u0435</span>' : ""}
+                    </h3>
+                    <div class="advanced-toolbar">
+                        <div class="toolbar-group">
+                            <button class="btn btn-sm btn-format" data-format="bold" title="Bold" ${readOnly ? "disabled" : ""}>
+                                <strong>B</strong>
+                            </button>
+                            <button class="btn btn-sm btn-format" data-format="italic" title="Italic" ${readOnly ? "disabled" : ""}>
+                                <em>I</em>
+                            </button>
+                            <button class="btn btn-sm btn-format" data-format="underline" title="Underline" ${readOnly ? "disabled" : ""}>
+                                <u>U</u>
+                            </button>
+                        </div>
+                        <div class="toolbar-group">
+                            <button class="btn btn-sm insert-image" title="Insert Image" ${readOnly ? "disabled" : ""}>
+                                \u{1F5BC}\uFE0F
+                            </button>
+                            <button class="btn btn-sm insert-link" title="Insert Link" ${readOnly ? "disabled" : ""}>
+                                \u{1F517}
+                            </button>
+                            <button class="btn btn-sm insert-table" title="Insert Table" ${readOnly ? "disabled" : ""}>
+                                \u{1F4CA}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div class="editor-container">
+                        <div id="editor-${id}" class="quill-editor"></div>
+                    </div>
+                    <div class="advanced-stats">
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-value" id="wordCount">0</div>
+                                <div class="stat-label">Words</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="charCount">0</div>
+                                <div class="stat-label">Chars</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="paragraphCount">0</div>
+                                <div class="stat-label">Paragraphs</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="readingTime">0</div>
+                                <div class="stat-label">Min Read</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+__name(advancedTemplate, "advancedTemplate");
 
 // wysiwyg/public/components/wysiwyg-editor/controller/index.mjs
 var controller = /* @__PURE__ */ __name((context2) => {
@@ -1918,9 +2058,9 @@ var controller = /* @__PURE__ */ __name((context2) => {
     }
   }, "restoreSelection");
   const withSelectionPreservation = /* @__PURE__ */ __name((callback) => {
-    return (...args) => {
+    return async (...args) => {
       saveSelection();
-      const result = callback(...args);
+      const result = await callback(...args);
       setTimeout(restoreSelection, 0);
       return result;
     };
@@ -2069,7 +2209,8 @@ async function createActions(context2) {
     getStats: getStats.bind(context2),
     insertTable: insertTable.bind(context2),
     addEmbed: addEmbed.bind(context2),
-    _updatePlaceholderState: _updatePlaceholderState.bind(context2)
+    _updatePlaceholderState: _updatePlaceholderState.bind(context2),
+    _insertLinkHandler: _insertLinkHandler.bind(context2)
   };
 }
 __name(createActions, "createActions");
@@ -2107,7 +2248,7 @@ async function setContent(content, format = "html") {
       default:
         this.quill.root.innerHTML = content;
     }
-    this._updatePlaceholderState();
+    await this._updatePlaceholderState();
     if (selection && !wasEmpty) {
       setTimeout(() => {
         try {
@@ -2117,15 +2258,15 @@ async function setContent(content, format = "html") {
         }
       }, 10);
     }
-    this._handleTextChange();
-    this.postMessage({
+    await this._handleTextChange();
+    await this._sendContentChangedMessage({
       type: "content-set",
       format,
       contentLength: content.length
     });
   } catch (error) {
     console.error("\u041E\u0448\u0438\u0431\u043A\u0430 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0438 \u043A\u043E\u043D\u0442\u0435\u043D\u0442\u0430:", error);
-    this.addError({
+    await this.addError({
       componentName: this.constructor.name,
       source: "setContent",
       message: "\u041E\u0448\u0438\u0431\u043A\u0430 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0438 \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u043C\u043E\u0433\u043E \u0440\u0435\u0434\u0430\u043A\u0442\u043E\u0440\u0430",
@@ -2139,13 +2280,13 @@ async function clearContent() {
   try {
     const length = this.quill.getLength();
     this.quill.deleteText(0, length);
-    this._updatePlaceholderState();
-    this.postMessage({
+    await this._updatePlaceholderState();
+    await this._sendContentChangedMessage({
       type: "content-cleared"
     });
   } catch (error) {
     console.error("\u041E\u0448\u0438\u0431\u043A\u0430 \u043E\u0447\u0438\u0441\u0442\u043A\u0438 \u0440\u0435\u0434\u0430\u043A\u0442\u043E\u0440\u0430:", error);
-    this.addError({
+    await this.addError({
       componentName: this.constructor.name,
       source: "clearContent",
       message: "\u041E\u0448\u0438\u0431\u043A\u0430 \u043E\u0447\u0438\u0441\u0442\u043A\u0438 \u0440\u0435\u0434\u0430\u043A\u0442\u043E\u0440\u0430",
@@ -2166,15 +2307,15 @@ async function insertText(text, formats = {}) {
       this.quill.insertText(length - 1, text, formats);
       this.quill.setSelection(length - 1 + text.length, 0);
     }
-    this._updatePlaceholderState();
-    this.postMessage({
+    await this._updatePlaceholderState();
+    await this._sendContentChangedMessage({
       type: "text-inserted",
       text,
       formats
     });
   } catch (error) {
     console.error("\u041E\u0448\u0438\u0431\u043A\u0430 \u0432\u0441\u0442\u0430\u0432\u043A\u0438 \u0442\u0435\u043A\u0441\u0442\u0430:", error);
-    this.addError({
+    await this.addError({
       componentName: this.constructor.name,
       source: "insertText",
       message: "\u041E\u0448\u0438\u0431\u043A\u0430 \u0432\u0441\u0442\u0430\u0432\u043A\u0438 \u0442\u0435\u043A\u0441\u0442\u0430",
@@ -2190,15 +2331,15 @@ async function insertHTML(html) {
     if (selection) {
       const range = selection.index;
       this.quill.clipboard.dangerouslyPasteHTML(range, html);
-      this._updatePlaceholderState();
-      this.postMessage({
+      await this._updatePlaceholderState();
+      await this._sendContentChangedMessage({
         type: "html-inserted",
         html
       });
     }
   } catch (error) {
     console.error("\u041E\u0448\u0438\u0431\u043A\u0430 \u0432\u0441\u0442\u0430\u0432\u043A\u0438 HTML:", error);
-    this.addError({
+    await this.addError({
       componentName: this.constructor.name,
       source: "insertHTML",
       message: "\u041E\u0448\u0438\u0431\u043A\u0430 \u0432\u0441\u0442\u0430\u0432\u043A\u0438 HTML",
@@ -2216,8 +2357,8 @@ async function insertImage(url, alt = "") {
         url,
         alt
       });
-      this._updatePlaceholderState();
-      this.postMessage({
+      await this._updatePlaceholderState();
+      await this._sendContentChangedMessage({
         type: "image-inserted",
         url,
         alt
@@ -2225,7 +2366,7 @@ async function insertImage(url, alt = "") {
     }
   } catch (error) {
     console.error("\u041E\u0448\u0438\u0431\u043A\u0430 \u0432\u0441\u0442\u0430\u0432\u043A\u0438 \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u044F:", error);
-    this.addError({
+    await this.addError({
       componentName: this.constructor.name,
       source: "insertImage",
       message: "\u041E\u0448\u0438\u0431\u043A\u0430 \u0432\u0441\u0442\u0430\u0432\u043A\u0438 \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u044F",
@@ -2247,7 +2388,7 @@ async function insertLink() {
       return;
     }
     const selectedText = this.quill.getText(selection.index, selection.length);
-    const result = await this.showModal({
+    await this.showModal({
       title: "\u0412\u0441\u0442\u0430\u0432\u043A\u0430 \u0441\u0441\u044B\u043B\u043A\u0438",
       content: `
         <div class="link-dialog">
@@ -2269,7 +2410,7 @@ async function insertLink() {
         {
           text: "\u0412\u0441\u0442\u0430\u0432\u0438\u0442\u044C",
           type: "primary",
-          action: /* @__PURE__ */ __name(() => this._insertLinkHandler(), "action")
+          action: /* @__PURE__ */ __name(() => this._actions._insertLinkHandler(), "action")
         },
         {
           text: "\u041E\u0442\u043C\u0435\u043D\u0430",
@@ -2279,7 +2420,7 @@ async function insertLink() {
     });
   } catch (error) {
     console.error("\u041E\u0448\u0438\u0431\u043A\u0430 \u0432\u0441\u0442\u0430\u0432\u043A\u0438 \u0441\u0441\u044B\u043B\u043A\u0438:", error);
-    this.addError({
+    await this.addError({
       componentName: this.constructor.name,
       source: "insertLink",
       message: "\u041E\u0448\u0438\u0431\u043A\u0430 \u0432\u0441\u0442\u0430\u0432\u043A\u0438 \u0441\u0441\u044B\u043B\u043A\u0438",
@@ -2288,10 +2429,51 @@ async function insertLink() {
   }
 }
 __name(insertLink, "insertLink");
+async function _insertLinkHandler() {
+  if (!this.quill) return;
+  const urlInput = this.shadowRoot.getElementById("link-url");
+  const textInput = this.shadowRoot.getElementById("link-text");
+  const titleInput = this.shadowRoot.getElementById("link-title");
+  const url = urlInput?.value?.trim();
+  const text = textInput?.value?.trim();
+  const title = titleInput?.value?.trim();
+  if (!url) {
+    await this.showModal({
+      title: "\u041E\u0448\u0438\u0431\u043A\u0430",
+      content: "\u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u0443\u043A\u0430\u0436\u0438\u0442\u0435 URL \u0441\u0441\u044B\u043B\u043A\u0438",
+      buttons: [{ text: "OK", type: "primary" }]
+    });
+    return;
+  }
+  const selection = this.quill.getSelection();
+  if (selection) {
+    if (text && text !== this.quill.getText(selection.index, selection.length)) {
+      this.quill.deleteText(selection.index, selection.length);
+      this.quill.insertText(selection.index, text, { link: url });
+    } else {
+      this.quill.formatText(selection.index, selection.length, "link", url);
+    }
+    await this._updatePlaceholderState();
+    await this._sendContentChangedMessage({
+      type: "link-inserted",
+      url,
+      text,
+      title
+    });
+  }
+}
+__name(_insertLinkHandler, "_insertLinkHandler");
 async function toggleFormat(format, value = null) {
   if (!this.quill) return;
   try {
-    const selection = this.quill.getSelection();
+    await this._saveCurrentSelection();
+    let selection = this.quill.getSelection();
+    if (!selection && this._lastKnownSelection) {
+      const timeDiff = Date.now() - this._lastKnownSelection.timestamp;
+      if (timeDiff < 5e3) {
+        selection = this._lastKnownSelection;
+      }
+    }
     if (!selection) {
       const length = this.quill.getLength();
       this.quill.setSelection(length - 1, 0);
@@ -2309,14 +2491,14 @@ async function toggleFormat(format, value = null) {
         console.warn("\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C \u0432\u044B\u0434\u0435\u043B\u0435\u043D\u0438\u0435 \u043F\u043E\u0441\u043B\u0435 \u0444\u043E\u0440\u043C\u0430\u0442\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u044F:", error);
       }
     }, 0);
-    this.postMessage({
+    await this._sendContentChangedMessage({
       type: "format-toggled",
       format,
       value
     });
   } catch (error) {
     console.error("\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u0435\u0440\u0435\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u044F \u0444\u043E\u0440\u043C\u0430\u0442\u0430:", error);
-    this.addError({
+    await this.addError({
       componentName: this.constructor.name,
       source: "toggleFormat",
       message: `\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u0435\u0440\u0435\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u044F \u0444\u043E\u0440\u043C\u0430\u0442\u0430: ${format}`,
@@ -2335,13 +2517,19 @@ async function getFormats() {
     return {};
   } catch (error) {
     console.error("\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u043E\u043B\u0443\u0447\u0435\u043D\u0438\u044F \u0444\u043E\u0440\u043C\u0430\u0442\u043E\u0432:", error);
+    await this.addError({
+      componentName: this.constructor.name,
+      source: "getFormats",
+      message: "\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u043E\u043B\u0443\u0447\u0435\u043D\u0438\u044F \u0444\u043E\u0440\u043C\u0430\u0442\u043E\u0432",
+      details: error
+    });
     return {};
   }
 }
 __name(getFormats, "getFormats");
 async function exportContent(format = "html") {
   try {
-    const content = await this.getContent(format);
+    const content = await this._actions.getContent(format);
     const blob = new Blob([content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a2 = document.createElement("a");
@@ -2351,7 +2539,7 @@ async function exportContent(format = "html") {
     a2.click();
     document.body.removeChild(a2);
     URL.revokeObjectURL(url);
-    this.postMessage({
+    await this._sendContentChangedMessage({
       type: "content-exported",
       format,
       content,
@@ -2361,13 +2549,13 @@ async function exportContent(format = "html") {
     return content;
   } catch (error) {
     console.error("\u041E\u0448\u0438\u0431\u043A\u0430 \u044D\u043A\u0441\u043F\u043E\u0440\u0442\u0430 \u043A\u043E\u043D\u0442\u0435\u043D\u0442\u0430:", error);
-    this.addError({
+    await this.addError({
       componentName: this.constructor.name,
       source: "exportContent",
       message: "\u041E\u0448\u0438\u0431\u043A\u0430 \u044D\u043A\u0441\u043F\u043E\u0440\u0442\u0430 \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u043C\u043E\u0433\u043E",
       details: error
     });
-    const content = await this.getContent(format);
+    const content = await this._actions.getContent(format);
     await this.showModal({
       title: `\u042D\u043A\u0441\u043F\u043E\u0440\u0442 (${format.toUpperCase()})`,
       content: `
@@ -2396,14 +2584,20 @@ __name(exportContent, "exportContent");
 async function toggleTheme() {
   try {
     const newTheme = this.state.theme === "light" ? "dark" : "light";
-    this.setAttribute("theme", newTheme);
-    this.postMessage({
+    await this.updateElement({
+      selector: ".wysiwyg-editor",
+      value: newTheme,
+      property: "dataset.theme",
+      action: "set"
+    });
+    this.state.theme = newTheme;
+    await this._sendContentChangedMessage({
       type: "theme-changed",
       theme: newTheme
     });
   } catch (error) {
     console.error("\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u0435\u0440\u0435\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u044F \u0442\u0435\u043C\u044B:", error);
-    this.addError({
+    await this.addError({
       componentName: this.constructor.name,
       source: "toggleTheme",
       message: "\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u0435\u0440\u0435\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u044F \u0442\u0435\u043C\u044B",
@@ -2415,7 +2609,7 @@ __name(toggleTheme, "toggleTheme");
 async function focus() {
   if (this.quill) {
     this.quill.focus();
-    this.postMessage({
+    await this._sendContentChangedMessage({
       type: "editor-focused"
     });
   }
@@ -2424,7 +2618,7 @@ __name(focus, "focus");
 async function blur() {
   if (this.quill) {
     this.quill.blur();
-    this.postMessage({
+    await this._sendContentChangedMessage({
       type: "editor-blurred"
     });
   }
@@ -2434,7 +2628,7 @@ async function enable() {
   if (this.quill) {
     this.quill.enable(true);
     this.state.readOnly = false;
-    this.postMessage({
+    await this._sendContentChangedMessage({
       type: "editor-enabled"
     });
   }
@@ -2444,7 +2638,7 @@ async function disable() {
   if (this.quill) {
     this.quill.enable(false);
     this.state.readOnly = true;
-    this.postMessage({
+    await this._sendContentChangedMessage({
       type: "editor-disabled"
     });
   }
@@ -2463,7 +2657,7 @@ async function getStats() {
     readingTime: Math.ceil(words / 200)
     // среднее время чтения в минутах
   };
-  this.postMessage({
+  await this._sendContentChangedMessage({
     type: "stats-calculated",
     stats
   });
@@ -2485,8 +2679,8 @@ async function insertTable(rows = 3, cols = 3) {
       }
       tableHTML += "</table><br>";
       this.quill.clipboard.dangerouslyPasteHTML(selection.index, tableHTML);
-      this._updatePlaceholderState();
-      this.postMessage({
+      await this._updatePlaceholderState();
+      await this._sendContentChangedMessage({
         type: "table-inserted",
         rows,
         columns: cols
@@ -2494,7 +2688,7 @@ async function insertTable(rows = 3, cols = 3) {
     }
   } catch (error) {
     console.error("\u041E\u0448\u0438\u0431\u043A\u0430 \u0432\u0441\u0442\u0430\u0432\u043A\u0438 \u0442\u0430\u0431\u043B\u0438\u0446\u044B:", error);
-    this.addError({
+    await this.addError({
       componentName: this.constructor.name,
       source: "insertTable",
       message: "\u041E\u0448\u0438\u0431\u043A\u0430 \u0432\u0441\u0442\u0430\u0432\u043A\u0438 \u0442\u0430\u0431\u043B\u0438\u0446\u044B",
@@ -2531,8 +2725,8 @@ async function addEmbed(type, url) {
       }
       if (embedHTML) {
         this.quill.clipboard.dangerouslyPasteHTML(selection.index, embedHTML);
-        this._updatePlaceholderState();
-        this.postMessage({
+        await this._updatePlaceholderState();
+        await this._sendContentChangedMessage({
           type: "embed-inserted",
           embedType: type,
           url
@@ -2541,7 +2735,7 @@ async function addEmbed(type, url) {
     }
   } catch (error) {
     console.error("\u041E\u0448\u0438\u0431\u043A\u0430 \u0432\u0441\u0442\u0430\u0432\u043A\u0438 embed:", error);
-    this.addError({
+    await this.addError({
       componentName: this.constructor.name,
       source: "addEmbed",
       message: `\u041E\u0448\u0438\u0431\u043A\u0430 \u0432\u0441\u0442\u0430\u0432\u043A\u0438 embed: ${type}`,
@@ -2595,73 +2789,14 @@ var WysiwygEditor = class extends BaseComponent {
     this._boundHandleSelectionChange = this._handleSelectionChange.bind(this);
   }
   /**
-   * Отправляет сообщение другим компонентам системы
-   * @param {Object} message - Объект сообщения
-   * @param {string} message.type - Тип сообщения
-   * @param {*} [message.data] - Данные сообщения
-   * @param {string} [message.target] - Целевой компонент (опционально)
-   * @param {string} [message.source] - Источник сообщения (по умолчанию имя компонента)
-   * @returns {Promise<Object>} Ответ от получателя
-   */
-  async postMessage(message) {
-    const { type, data, target, source = this.constructor.name } = message;
-    console.trace();
-    console.log(`[WysiwygEditor] \u041E\u0442\u043F\u0440\u0430\u0432\u043A\u0430 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u044F:`, {
-      type,
-      source,
-      target,
-      data,
-      timestamp: (/* @__PURE__ */ new Date()).toISOString()
-    });
-    if (target) {
-      try {
-        const [componentName, componentId] = target.split(":");
-        const targetComponent = await this.getComponentAsync(componentName, componentId);
-        if (targetComponent && typeof targetComponent.postMessage === "function") {
-          const response = await targetComponent.postMessage({
-            type,
-            data,
-            source: this.constructor.name,
-            target: `${this.constructor.name}:${this.id}`
-          });
-          return response;
-        } else {
-          console.warn(`[WysiwygEditor] \u0426\u0435\u043B\u0435\u0432\u043E\u0439 \u043A\u043E\u043C\u043F\u043E\u043D\u0435\u043D\u0442 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D \u0438\u043B\u0438 \u043D\u0435 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u0442 postMessage:`, target);
-          return { success: false, error: "Target component not found" };
-        }
-      } catch (error) {
-        console.error(`[WysiwygEditor] \u041E\u0448\u0438\u0431\u043A\u0430 \u043E\u0442\u043F\u0440\u0430\u0432\u043A\u0438 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u044F \u043A\u043E\u043C\u043F\u043E\u043D\u0435\u043D\u0442\u0443 ${target}:`, error);
-        return { success: false, error: error.message };
-      }
-    }
-    const eventDetail = {
-      type,
-      data,
-      source: this.constructor.name,
-      sourceId: this.id,
-      timestamp: Date.now()
-    };
-    const event = new CustomEvent("yato-component-message", {
-      detail: eventDetail,
-      bubbles: true,
-      composed: true
-    });
-    this.dispatchEvent(event);
-    return {
-      success: true,
-      message: "Message sent successfully",
-      timestamp: eventDetail.timestamp
-    };
-  }
-  /**
-   * Обрабатывает входящие сообщения от других компонентов
+   * Правильная реализация postMessage для входящих сообщений
    * @param {Object} message - Входящее сообщение
    * @param {string} message.type - Тип сообщения
    * @param {*} message.data - Данные сообщения
    * @param {string} message.source - Источник сообщения
    * @returns {Promise<Object>} Ответ на сообщение
    */
-  async handleIncomingMessage(message) {
+  async postMessage(message) {
     const { type, data, source } = message;
     console.log(`[WysiwygEditor] \u041F\u043E\u043B\u0443\u0447\u0435\u043D\u043E \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u043E\u0442 ${source}:`, { type, data });
     const messageHandlers = {
@@ -2678,7 +2813,7 @@ var WysiwygEditor = class extends BaseComponent {
       // Установка содержимого редактора
       "set-content": /* @__PURE__ */ __name(async () => {
         if (data && data.content !== void 0) {
-          await this.setContent(data.content, data.format || "html");
+          await this._actions.setContent(data.content, data.format || "html");
           return {
             success: true,
             message: "Content set successfully",
@@ -2690,7 +2825,7 @@ var WysiwygEditor = class extends BaseComponent {
       }, "set-content"),
       // Очистка редактора
       "clear-content": /* @__PURE__ */ __name(async () => {
-        await this.clearContent();
+        await this._actions.clearContent();
         return {
           success: true,
           message: "Editor cleared successfully"
@@ -2699,7 +2834,7 @@ var WysiwygEditor = class extends BaseComponent {
       // Применение форматирования
       "apply-format": /* @__PURE__ */ __name(async () => {
         if (data && data.format) {
-          await this.toggleFormat(data.format, data.value);
+          await this._actions.toggleFormat(data.format, data.value);
           return {
             success: true,
             message: `Format ${data.format} applied`,
@@ -2710,7 +2845,7 @@ var WysiwygEditor = class extends BaseComponent {
       }, "apply-format"),
       // Экспорт содержимого
       "export-content": /* @__PURE__ */ __name(async () => {
-        const content = await this.getContent(data?.format || "html");
+        const content = await this._actions.getContent(data?.format || "html");
         return {
           success: true,
           data: {
@@ -2724,7 +2859,7 @@ var WysiwygEditor = class extends BaseComponent {
       }, "export-content"),
       // Фокус на редактор
       "focus-editor": /* @__PURE__ */ __name(async () => {
-        await this.focusEditor();
+        await this._actions.focus();
         return {
           success: true,
           message: "Editor focused"
@@ -2732,12 +2867,98 @@ var WysiwygEditor = class extends BaseComponent {
       }, "focus-editor"),
       // Запрос статистики
       "get-stats": /* @__PURE__ */ __name(async () => {
-        const stats = await this.getStats();
+        const stats = await this._actions.getStats();
         return {
           success: true,
           data: stats
         };
-      }, "get-stats")
+      }, "get-stats"),
+      // Вставка текста
+      "insert-text": /* @__PURE__ */ __name(async () => {
+        if (data && data.text) {
+          await this._actions.insertText(data.text, data.formats || {});
+          return {
+            success: true,
+            message: "Text inserted successfully"
+          };
+        }
+        return { success: false, error: "No text provided" };
+      }, "insert-text"),
+      // Вставка HTML
+      "insert-html": /* @__PURE__ */ __name(async () => {
+        if (data && data.html) {
+          await this._actions.insertHTML(data.html);
+          return {
+            success: true,
+            message: "HTML inserted successfully"
+          };
+        }
+        return { success: false, error: "No HTML provided" };
+      }, "insert-html"),
+      // Переключение темы
+      "toggle-theme": /* @__PURE__ */ __name(async () => {
+        await this._actions.toggleTheme();
+        return {
+          success: true,
+          message: "Theme toggled",
+          theme: this.state.theme
+        };
+      }, "toggle-theme"),
+      // Включение/выключение редактора
+      "set-readonly": /* @__PURE__ */ __name(async () => {
+        if (data && typeof data.readOnly === "boolean") {
+          if (data.readOnly) {
+            await this._actions.disable();
+          } else {
+            await this._actions.enable();
+          }
+          return {
+            success: true,
+            message: `Editor ${data.readOnly ? "disabled" : "enabled"}`,
+            readOnly: this.state.readOnly
+          };
+        }
+        return { success: false, error: "No readOnly value provided" };
+      }, "set-readonly"),
+      // Вставка изображения
+      "insert-image": /* @__PURE__ */ __name(async () => {
+        if (data && data.url) {
+          await this._actions.insertImage(data.url, data.alt || "");
+          return {
+            success: true,
+            message: "Image inserted successfully"
+          };
+        }
+        return { success: false, error: "No image URL provided" };
+      }, "insert-image"),
+      // Вставка ссылки
+      "insert-link": /* @__PURE__ */ __name(async () => {
+        await this._actions.insertLink();
+        return {
+          success: true,
+          message: "Link insertion dialog opened"
+        };
+      }, "insert-link"),
+      // Вставка таблицы
+      "insert-table": /* @__PURE__ */ __name(async () => {
+        const rows = data?.rows || 3;
+        const cols = data?.cols || 3;
+        await this._actions.insertTable(rows, cols);
+        return {
+          success: true,
+          message: "Table inserted successfully",
+          rows,
+          columns: cols
+        };
+      }, "insert-table"),
+      // Получение текущих форматов
+      "get-formats": /* @__PURE__ */ __name(async () => {
+        const formats = await this._actions.getFormats();
+        return {
+          success: true,
+          data: formats
+        };
+      }, "get-formats")
     };
     if (messageHandlers[type]) {
       try {
@@ -2746,6 +2967,12 @@ var WysiwygEditor = class extends BaseComponent {
         return response;
       } catch (error) {
         console.error(`[WysiwygEditor] \u041E\u0448\u0438\u0431\u043A\u0430 \u043E\u0431\u0440\u0430\u0431\u043E\u0442\u043A\u0438 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u044F ${type}:`, error);
+        this.addError({
+          componentName: this.constructor.name,
+          source: "postMessage",
+          message: `\u041E\u0448\u0438\u0431\u043A\u0430 \u043E\u0431\u0440\u0430\u0431\u043E\u0442\u043A\u0438 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u044F ${type}`,
+          details: error
+        });
         return {
           success: false,
           error: error.message,
@@ -2762,60 +2989,45 @@ var WysiwygEditor = class extends BaseComponent {
       id: this.id
     };
   }
+  /**
+   * Отправляет сообщение другому компоненту
+   * @param {string} targetComponent - Имя целевого компонента
+   * @param {string} targetId - ID целевого компонента
+   * @param {string} type - Тип сообщения
+   * @param {*} data - Данные сообщения
+   * @returns {Promise<Object>} Ответ от целевого компонента
+   */
+  async sendMessageToComponent(targetComponent, targetId, type, data = {}) {
+    try {
+      const target = await this.getComponentAsync(targetComponent, targetId);
+      if (target && typeof target.postMessage === "function") {
+        const response = await target.postMessage({
+          type,
+          data,
+          source: `${this.constructor.name}:${this.id}`
+        });
+        return response;
+      } else {
+        console.warn(`\u0426\u0435\u043B\u0435\u0432\u043E\u0439 \u043A\u043E\u043C\u043F\u043E\u043D\u0435\u043D\u0442 ${targetComponent}:${targetId} \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D \u0438\u043B\u0438 \u043D\u0435 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u0442 postMessage`);
+        return { success: false, error: "Target component not found" };
+      }
+    } catch (error) {
+      console.error(`\u041E\u0448\u0438\u0431\u043A\u0430 \u043E\u0442\u043F\u0440\u0430\u0432\u043A\u0438 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u044F \u043A\u043E\u043C\u043F\u043E\u043D\u0435\u043D\u0442\u0443 ${targetComponent}:${targetId}:`, error);
+      this.addError({
+        componentName: this.constructor.name,
+        source: "sendMessageToComponent",
+        message: `\u041E\u0448\u0438\u0431\u043A\u0430 \u043E\u0442\u043F\u0440\u0430\u0432\u043A\u0438 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u044F \u043A\u043E\u043C\u043F\u043E\u043D\u0435\u043D\u0442\u0443 ${targetComponent}`,
+        details: error
+      });
+      return { success: false, error: error.message };
+    }
+  }
   async _componentReady() {
     this._controller = await controller(this);
     this._actions = await createActions(this);
-    this._setupMessageListener();
     await this.fullRender(this.state);
     await this._initEditor();
-    await this.postMessage({
-      type: "component-ready",
-      data: {
-        component: this.constructor.name,
-        id: this.id,
-        capabilities: ["edit", "format", "export", "stats"]
-      }
-    });
     return true;
-  }
-  /**
-   * Настраивает слушатель для входящих сообщений
-   */
-  _setupMessageListener() {
-    this._messageHandler = (event) => {
-      const message = event.detail;
-      if (message && this._shouldHandleMessage(message)) {
-        this.handleIncomingMessage(message).then((response) => {
-          if (message.requireResponse && message.source) {
-            this.postMessage({
-              type: "response",
-              data: response,
-              target: message.source,
-              source: this.constructor.name
-            });
-          }
-        });
-      }
-    };
-    window.addEventListener("yato-component-message", this._messageHandler);
-  }
-  /**
-   * Проверяет, должно ли сообщение быть обработано этим компонентом
-   */
-  _shouldHandleMessage(message) {
-    if (message.target && message.target === `${this.constructor.name}:${this.id}`) {
-      return true;
-    }
-    const broadcastTypes = [
-      "get-editor-state",
-      "set-content",
-      "clear-content",
-      "apply-format",
-      "export-content",
-      "focus-editor",
-      "get-stats"
-    ];
-    return !message.target && broadcastTypes.includes(message.type);
   }
   async _initEditor() {
     await new Promise((resolve) => setTimeout(resolve, 100));
@@ -2877,7 +3089,7 @@ var WysiwygEditor = class extends BaseComponent {
         this.quill.root.innerHTML = initialValue;
         this.state.value = initialValue;
       }
-      this._setupQuillEventListeners();
+      await this._setupQuillEventListeners();
       setTimeout(() => {
         if (this.quill) {
           const length = this.quill.getLength();
@@ -2891,17 +3103,16 @@ var WysiwygEditor = class extends BaseComponent {
           console.log("Editor initialized with cursor at start");
         }
       }, 100);
-      this._setupResizeObserver();
-      this._applyCustomStyles();
-      this._updateContentStats();
+      await this._setupResizeObserver();
+      await this._applyCustomStyles();
+      await this._updateContentStats();
       console.log(`WYSIWYG \u0440\u0435\u0434\u0430\u043A\u0442\u043E\u0440 \u0438\u043D\u0438\u0446\u0438\u0430\u043B\u0438\u0437\u0438\u0440\u043E\u0432\u0430\u043D \u0441 ID: ${this._id}`);
     } catch (error) {
       console.error("\u041E\u0448\u0438\u0431\u043A\u0430 \u0438\u043D\u0438\u0446\u0438\u0430\u043B\u0438\u0437\u0430\u0446\u0438\u0438 Quill:", error);
       throw error;
     }
   }
-  // НОВЫЙ МЕТОД: Настройка слушателей событий Quill для Shadow DOM
-  _setupQuillEventListeners() {
+  async _setupQuillEventListeners() {
     if (!this.quill) return;
     const editorElement = this.quill.root;
     editorElement.addEventListener("input", this._boundHandleTextChange);
@@ -2915,13 +3126,10 @@ var WysiwygEditor = class extends BaseComponent {
     editorElement.addEventListener("click", this._boundHandleSelectionChange);
     editorElement.addEventListener("mouseup", this._boundHandleSelectionChange);
     editorElement.addEventListener("keyup", this._boundHandleSelectionChange);
-    this._setupMutationObserver();
+    await this._setupMutationObserver();
     console.log("Quill event listeners setup completed");
   }
-  /**
-   * Настройка MutationObserver для отслеживания изменений DOM
-   */
-  _setupMutationObserver() {
+  async _setupMutationObserver() {
     if (!this.quill) return;
     this._mutationObserver = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
@@ -2939,28 +3147,18 @@ var WysiwygEditor = class extends BaseComponent {
     });
     console.log("MutationObserver setup completed");
   }
-  _handleTextChange(delta, oldDelta, source) {
+  async _handleTextChange(delta, oldDelta, source) {
     if (!this.quill || this._isRestoringSelection) return;
     const contents = this.quill.root.innerHTML;
     const text = this.quill.getText();
     this.state.value = contents;
-    this._updateContentStats();
-    this._saveCurrentSelection();
+    await this._updateContentStats();
+    await this._saveCurrentSelection();
     setTimeout(() => {
       this._updateCurrentFormats();
     }, 0);
-    this.postMessage({
-      type: "content-changed",
-      data: {
-        content: contents,
-        text,
-        wordCount: this.state.wordCount,
-        charCount: this.state.charCount,
-        delta
-      }
-    });
   }
-  _handleSelectionChange(range, oldRange, source) {
+  async _handleSelectionChange(range, oldRange, source) {
     if (!this.quill) return;
     if (this._isRestoringSelection || this._ignoreNextSelectionChange) {
       console.log("Ignoring selection change during restoration");
@@ -2974,21 +3172,10 @@ var WysiwygEditor = class extends BaseComponent {
         length: range.length,
         timestamp: Date.now()
       };
-      this._updateCurrentFormats();
-      this.postMessage({
-        type: "selection-changed",
-        data: {
-          range,
-          formats: this.state.formats
-        }
-      });
+      await this._updateCurrentFormats();
     }
   }
-  /**
-   * Корректирует позицию курсора при переносе на новую строку
-   * @private
-   */
-  _correctCursorPosition() {
+  async _correctCursorPosition() {
     if (!this.quill) return;
     const selection = this.quill.getSelection();
     if (!selection) return;
@@ -3007,8 +3194,7 @@ var WysiwygEditor = class extends BaseComponent {
       }
     }
   }
-  // Сохраняет текущее выделение
-  _saveCurrentSelection() {
+  async _saveCurrentSelection() {
     if (!this.quill) return;
     try {
       const selection = this.quill.getSelection();
@@ -3024,8 +3210,7 @@ var WysiwygEditor = class extends BaseComponent {
       console.warn("Error saving selection:", error);
     }
   }
-  // Восстанавливает выделение
-  _restoreSelection() {
+  async _restoreSelection() {
     if (!this.quill || !this._lastKnownSelection) return;
     this._isRestoringSelection = true;
     this._ignoreNextSelectionChange = true;
@@ -3069,8 +3254,7 @@ var WysiwygEditor = class extends BaseComponent {
       }, 50);
     }
   }
-  // Обновляет текущие форматы
-  _updateCurrentFormats() {
+  async _updateCurrentFormats() {
     if (!this.quill) return;
     try {
       let selection = this.quill.getSelection();
@@ -3085,12 +3269,12 @@ var WysiwygEditor = class extends BaseComponent {
       }
       const format = this.quill.getFormat(selection);
       this.state.formats = Object.keys(format).filter((key) => format[key]);
-      this._updateFormatsDisplay();
+      await this._updateFormatsDisplay();
     } catch (error) {
       console.warn("Error updating formats:", error);
     }
   }
-  _updateContentStats() {
+  async _updateContentStats() {
     if (!this.quill) return;
     const text = this.quill.getText().trim();
     const html = this.quill.root.innerHTML;
@@ -3101,9 +3285,9 @@ var WysiwygEditor = class extends BaseComponent {
     this.state.wordCount = words;
     this.state.charCount = characters;
     this.state.paragraphCount = paragraphs;
-    this._updateStatsDisplay();
+    await this._updateStatsDisplay();
   }
-  _setupResizeObserver() {
+  async _setupResizeObserver() {
     if (!this.quill) return;
     this.resizeObserver = new ResizeObserver((entries) => {
       for (let entry of entries) {
@@ -3115,16 +3299,10 @@ var WysiwygEditor = class extends BaseComponent {
       this.resizeObserver.observe(editorElement);
     }
   }
-  _handleResize(entry) {
-    this.postMessage({
-      type: "editor-resized",
-      data: {
-        width: entry.contentRect.width,
-        height: entry.contentRect.height
-      }
-    });
+  async _handleResize(entry) {
+    console.log("Editor resized:", entry.contentRect);
   }
-  _applyCustomStyles() {
+  async _applyCustomStyles() {
     if (!this.quill) return;
     const editorContainer = this.shadowRoot.querySelector(".ql-container");
     if (editorContainer && this.state.height) {
@@ -3132,26 +3310,26 @@ var WysiwygEditor = class extends BaseComponent {
       editorContainer.style.minHeight = this.state.height;
     }
   }
-  _updateStatsDisplay() {
-    this.updateElement({
+  async _updateStatsDisplay() {
+    await this.updateElement({
       selector: "#wordCount",
       value: this.state.wordCount.toString(),
       property: "textContent"
     });
-    this.updateElement({
+    await this.updateElement({
       selector: "#charCount",
       value: this.state.charCount.toString(),
       property: "textContent"
     });
-    this.updateElement({
+    await this.updateElement({
       selector: "#paragraphCount",
       value: this.state.paragraphCount.toString(),
       property: "textContent"
     });
   }
-  _updateFormatsDisplay() {
+  async _updateFormatsDisplay() {
     const formats = this.state.formats?.join(", ") || "Normal text";
-    this.updateElement({
+    await this.updateElement({
       selector: "#formatsDisplay",
       value: formats,
       property: "textContent"
@@ -3162,42 +3340,39 @@ var WysiwygEditor = class extends BaseComponent {
     const attributeHandlers = {
       "value": /* @__PURE__ */ __name(async () => {
         if (newValue !== this.state.value) {
-          await this.setContent(newValue, "html");
+          await this._actions.setContent(newValue, "html");
         }
       }, "value"),
-      "placeholder": /* @__PURE__ */ __name(() => {
+      "placeholder": /* @__PURE__ */ __name(async () => {
         this.quill.root.setAttribute("data-placeholder", newValue);
         this.state.placeholder = newValue;
       }, "placeholder"),
-      "read-only": /* @__PURE__ */ __name(() => {
+      "read-only": /* @__PURE__ */ __name(async () => {
         const isReadOnly = newValue !== null;
         this.quill.enable(!isReadOnly);
         this.state.readOnly = isReadOnly;
       }, "read-only"),
-      "theme": /* @__PURE__ */ __name(() => {
+      "theme": /* @__PURE__ */ __name(async () => {
         this.state.theme = newValue;
-        this._applyTheme();
+        await this._applyTheme();
       }, "theme"),
-      "height": /* @__PURE__ */ __name(() => {
+      "height": /* @__PURE__ */ __name(async () => {
         this.state.height = newValue;
-        this._applyCustomStyles();
+        await this._applyCustomStyles();
       }, "height")
     };
     if (attributeHandlers[name]) {
       await attributeHandlers[name]();
     }
   }
-  _applyTheme() {
+  async _applyTheme() {
     const editorElement = this.shadowRoot.querySelector(".wysiwyg-editor");
     if (editorElement) {
       editorElement.setAttribute("data-theme", this.state.theme);
     }
   }
   async _componentDisconnected() {
-    if (this._messageHandler) {
-      window.removeEventListener("yato-component-message", this._messageHandler);
-    }
-    this._cleanupEventListeners();
+    await this._cleanupEventListeners();
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
     }
@@ -3211,16 +3386,8 @@ var WysiwygEditor = class extends BaseComponent {
     if (this._controller?.destroy) {
       await this._controller.destroy();
     }
-    await this.postMessage({
-      type: "component-disconnected",
-      data: {
-        component: this.constructor.name,
-        id: this.id
-      }
-    });
   }
-  // НОВЫЙ МЕТОД: Очистка слушателей событий
-  _cleanupEventListeners() {
+  async _cleanupEventListeners() {
     if (!this.quill) return;
     const editorElement = this.quill.root;
     editorElement.removeEventListener("input", this._boundHandleTextChange);
@@ -3230,163 +3397,7 @@ var WysiwygEditor = class extends BaseComponent {
     editorElement.removeEventListener("mouseup", this._boundHandleSelectionChange);
     editorElement.removeEventListener("keyup", this._boundHandleSelectionChange);
   }
-  // Публичные методы для API
-  async getContent(format = "html") {
-    if (!this.quill) return "";
-    switch (format) {
-      case "html":
-        return this.quill.root.innerHTML;
-      case "text":
-        return this.quill.getText();
-      case "delta":
-        return this.quill.getContents();
-      default:
-        return this.quill.root.innerHTML;
-    }
-  }
-  async setContent(content, format = "html") {
-    if (!this.quill) return;
-    this._saveCurrentSelection();
-    this._isRestoringSelection = true;
-    try {
-      const oldLength = this.quill.getLength();
-      switch (format) {
-        case "html":
-          this.quill.root.innerHTML = content;
-          break;
-        case "text":
-          this.quill.setText(content);
-          break;
-        case "delta":
-          this.quill.setContents(content);
-          break;
-        default:
-          this.quill.root.innerHTML = content;
-      }
-      this.state.value = this.quill.root.innerHTML;
-      this._updateContentStats();
-      setTimeout(() => {
-        this._restoreSelection();
-        this._updateCurrentFormats();
-      }, 10);
-    } catch (error) {
-      console.error("\u041E\u0448\u0438\u0431\u043A\u0430 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0438 \u043A\u043E\u043D\u0442\u0435\u043D\u0442\u0430:", error);
-      this.addError({
-        componentName: this.constructor.name,
-        source: "setContent",
-        message: "\u041E\u0448\u0438\u0431\u043A\u0430 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0438 \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u043C\u043E\u0433\u043E \u0440\u0435\u0434\u0430\u043A\u0442\u043E\u0440\u0430",
-        details: error
-      });
-    } finally {
-      setTimeout(() => {
-        this._isRestoringSelection = false;
-      }, 100);
-    }
-  }
-  async clearContent() {
-    if (!this.quill) return;
-    const length = this.quill.getLength();
-    this.quill.deleteText(0, length);
-  }
-  async insertText(text, formats = {}) {
-    if (!this.quill) return;
-    const selection = this.quill.getSelection();
-    if (selection) {
-      this.quill.insertText(selection.index, text, formats);
-      this.quill.setSelection(selection.index + text.length, 0);
-    }
-  }
-  async insertHTML(html) {
-    if (!this.quill) return;
-    const selection = this.quill.getSelection();
-    if (selection) {
-      const delta = this.quill.clipboard.convert(html);
-      this.quill.updateContents(delta);
-    }
-  }
-  async focusEditor() {
-    if (this.quill) {
-      this.quill.focus();
-    }
-  }
-  async blurEditor() {
-    if (this.quill) {
-      this.quill.blur();
-    }
-  }
-  async getFormats() {
-    if (!this.quill) return {};
-    const selection = this.quill.getSelection();
-    if (selection) {
-      return this.quill.getFormat(selection);
-    }
-    return {};
-  }
-  async toggleFormat(format, value = null) {
-    if (!this.quill) return;
-    try {
-      this._saveCurrentSelection();
-      let selection = this.quill.getSelection();
-      if (!selection && this._lastKnownSelection) {
-        const timeDiff = Date.now() - this._lastKnownSelection.timestamp;
-        if (timeDiff < 5e3) {
-          selection = this._lastKnownSelection;
-        }
-      }
-      if (!selection) {
-        console.warn("No selection available for formatting");
-        return;
-      }
-      if (value === null) {
-        const currentFormat = this.quill.getFormat(selection);
-        value = !currentFormat[format];
-      }
-      this.quill.formatText(selection.index, selection.length, format, value);
-      setTimeout(() => {
-        this._restoreSelection();
-        this._updateCurrentFormats();
-      }, 10);
-      this.postMessage({
-        type: "format-toggled",
-        data: {
-          format,
-          value
-        }
-      });
-    } catch (error) {
-      console.error("\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u0435\u0440\u0435\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u044F \u0444\u043E\u0440\u043C\u0430\u0442\u0430:", error);
-      this.addError({
-        componentName: this.constructor.name,
-        source: "toggleFormat",
-        message: `\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u0435\u0440\u0435\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u044F \u0444\u043E\u0440\u043C\u0430\u0442\u0430: ${format}`,
-        details: error
-      });
-    }
-  }
-  // Метод для принудительной установки курсора в начало
-  async setCursorToStart() {
-    if (!this.quill) return;
-    try {
-      this.quill.setSelection(0, 0, "silent");
-      this._lastKnownSelection = { index: 0, length: 0, timestamp: Date.now() };
-      console.log("Cursor set to start");
-    } catch (error) {
-      console.warn("Error setting cursor to start:", error);
-    }
-  }
-  // Метод для принудительной установки курсора в конец
-  async setCursorToEnd() {
-    if (!this.quill) return;
-    try {
-      const length = this.quill.getLength();
-      this.quill.setSelection(length, 0, "silent");
-      this._lastKnownSelection = { index: length, length: 0, timestamp: Date.now() };
-      console.log("Cursor set to end");
-    } catch (error) {
-      console.warn("Error setting cursor to end:", error);
-    }
-  }
-  // Метод для получения состояния редактора
+  // Публичные методы для API (используют actions)
   async getEditorState() {
     return {
       value: this.state.value,
@@ -3397,6 +3408,46 @@ var WysiwygEditor = class extends BaseComponent {
       readOnly: this.state.readOnly,
       theme: this.state.theme
     };
+  }
+  // Методы для удобства использования компонента
+  async getContent(format = "html") {
+    return await this._actions.getContent(format);
+  }
+  async setContent(content, format = "html") {
+    return await this._actions.setContent(content, format);
+  }
+  async clearContent() {
+    return await this._actions.clearContent();
+  }
+  async insertText(text, formats = {}) {
+    return await this._actions.insertText(text, formats);
+  }
+  async insertHTML(html) {
+    return await this._actions.insertHTML(html);
+  }
+  async toggleFormat(format, value = null) {
+    return await this._actions.toggleFormat(format, value);
+  }
+  async focusEditor() {
+    return await this._actions.focus();
+  }
+  async blurEditor() {
+    return await this._actions.blur();
+  }
+  async enableEditor() {
+    return await this._actions.enable();
+  }
+  async disableEditor() {
+    return await this._actions.disable();
+  }
+  async toggleTheme() {
+    return await this._actions.toggleTheme();
+  }
+  async getStats() {
+    return await this._actions.getStats();
+  }
+  async exportContent(format = "html") {
+    return await this._actions.exportContent(format);
   }
 };
 if (!customElements.get("wysiwyg-editor")) {

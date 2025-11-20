@@ -162,6 +162,9 @@ body {
     line-height: 1.6;
     transition: var(--transition-slow);
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 /* Переключатель темы */
@@ -268,6 +271,7 @@ body {
     padding: 0 var(--space-md);
     position: relative;
     z-index: 10;
+    width: 1200px;
 }
 
 .page-header {

@@ -27,9 +27,9 @@ export const controller = (context) => {
 
     // Обработчик для сохранения выделения перед действиями
     const withSelectionPreservation = (callback) => {
-        return (...args) => {
+        return async (...args) => {
             saveSelection();
-            const result = callback(...args);
+            const result = await callback(...args);
             // Восстанавливаем выделение после следующего тика event loop
             setTimeout(restoreSelection, 0);
             return result;

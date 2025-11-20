@@ -18,7 +18,8 @@ export async function createActions(context) {
         getStats: getStats.bind(context),
         insertTable: insertTable.bind(context),
         addEmbed: addEmbed.bind(context),
-        _updatePlaceholderState: _updatePlaceholderState.bind(context)
+        _updatePlaceholderState: _updatePlaceholderState.bind(context),
+        _insertLinkHandler: _insertLinkHandler.bind(context)
     };
 }
 
@@ -61,7 +62,7 @@ async function setContent(content, format = 'html') {
         }
 
         // Обновляем состояние placeholder
-        this._updatePlaceholderState();
+        await this._updatePlaceholderState();
 
         // Восстанавливаем выделение если было
         if (selection && !wasEmpty) {
@@ -75,16 +76,18 @@ async function setContent(content, format = 'html') {
         }
 
         // Обновляем статистику
-        this._handleTextChange();
+        await this._handleTextChange();
 
-        this.postMessage({
+        // Отправляем сообщение о изменении контента через правильный API
+        await this._sendContentChangedMessage({
             type: 'content-set',
             format: format,
             contentLength: content.length
         });
+
     } catch (error) {
         console.error('Ошибка установки контента:', error);
-        this.addError({
+        await this.addError({
             componentName: this.constructor.name,
             source: 'setContent',
             message: 'Ошибка установки содержимого редактора',
@@ -101,14 +104,16 @@ async function clearContent() {
         this.quill.deleteText(0, length);
 
         // Обновляем состояние placeholder
-        this._updatePlaceholderState();
+        await this._updatePlaceholderState();
 
-        this.postMessage({
+        // Отправляем сообщение о очистке
+        await this._sendContentChangedMessage({
             type: 'content-cleared'
         });
+
     } catch (error) {
         console.error('Ошибка очистки редактора:', error);
-        this.addError({
+        await this.addError({
             componentName: this.constructor.name,
             source: 'clearContent',
             message: 'Ошибка очистки редактора',
@@ -133,16 +138,18 @@ async function insertText(text, formats = {}) {
         }
 
         // Обновляем состояние placeholder
-        this._updatePlaceholderState();
+        await this._updatePlaceholderState();
 
-        this.postMessage({
+        // Отправляем сообщение о вставке текста
+        await this._sendContentChangedMessage({
             type: 'text-inserted',
             text: text,
             formats: formats
         });
+
     } catch (error) {
         console.error('Ошибка вставки текста:', error);
-        this.addError({
+        await this.addError({
             componentName: this.constructor.name,
             source: 'insertText',
             message: 'Ошибка вставки текста',
@@ -161,16 +168,17 @@ async function insertHTML(html) {
             this.quill.clipboard.dangerouslyPasteHTML(range, html);
 
             // Обновляем состояние placeholder
-            this._updatePlaceholderState();
+            await this._updatePlaceholderState();
 
-            this.postMessage({
+            // Отправляем сообщение о вставке HTML
+            await this._sendContentChangedMessage({
                 type: 'html-inserted',
                 html: html
             });
         }
     } catch (error) {
         console.error('Ошибка вставки HTML:', error);
-        this.addError({
+        await this.addError({
             componentName: this.constructor.name,
             source: 'insertHTML',
             message: 'Ошибка вставки HTML',
@@ -191,9 +199,10 @@ async function insertImage(url, alt = '') {
             });
 
             // Обновляем состояние placeholder
-            this._updatePlaceholderState();
+            await this._updatePlaceholderState();
 
-            this.postMessage({
+            // Отправляем сообщение о вставке изображения
+            await this._sendContentChangedMessage({
                 type: 'image-inserted',
                 url: url,
                 alt: alt
@@ -201,7 +210,7 @@ async function insertImage(url, alt = '') {
         }
     } catch (error) {
         console.error('Ошибка вставки изображения:', error);
-        this.addError({
+        await this.addError({
             componentName: this.constructor.name,
             source: 'insertImage',
             message: 'Ошибка вставки изображения',
@@ -226,7 +235,7 @@ async function insertLink() {
 
         const selectedText = this.quill.getText(selection.index, selection.length);
 
-        const result = await this.showModal({
+        await this.showModal({
             title: 'Вставка ссылки',
             content: `
         <div class="link-dialog">
@@ -248,7 +257,7 @@ async function insertLink() {
                 {
                     text: 'Вставить',
                     type: 'primary',
-                    action: () => this._insertLinkHandler()
+                    action: () => this._actions._insertLinkHandler()
                 },
                 {
                     text: 'Отмена',
@@ -259,7 +268,7 @@ async function insertLink() {
 
     } catch (error) {
         console.error('Ошибка вставки ссылки:', error);
-        this.addError({
+        await this.addError({
             componentName: this.constructor.name,
             source: 'insertLink',
             message: 'Ошибка вставки ссылки',
@@ -300,9 +309,10 @@ async function _insertLinkHandler() {
         }
 
         // Обновляем состояние placeholder
-        this._updatePlaceholderState();
+        await this._updatePlaceholderState();
 
-        this.postMessage({
+        // Отправляем сообщение о вставке ссылки
+        await this._sendContentChangedMessage({
             type: 'link-inserted',
             url: url,
             text: text,
@@ -316,7 +326,18 @@ async function toggleFormat(format, value = null) {
 
     try {
         // Сохраняем текущее выделение
-        const selection = this.quill.getSelection();
+        await this._saveCurrentSelection();
+
+        let selection = this.quill.getSelection();
+
+        // Если нет выделения, используем сохраненное
+        if (!selection && this._lastKnownSelection) {
+            const timeDiff = Date.now() - this._lastKnownSelection.timestamp;
+            if (timeDiff < 5000) {
+                selection = this._lastKnownSelection;
+            }
+        }
+
         if (!selection) {
             // Если нет выделения, используем текущую позицию курсора
             const length = this.quill.getLength();
@@ -341,14 +362,16 @@ async function toggleFormat(format, value = null) {
             }
         }, 0);
 
-        this.postMessage({
+        // Отправляем сообщение о изменении формата
+        await this._sendContentChangedMessage({
             type: 'format-toggled',
             format: format,
             value: value
         });
+
     } catch (error) {
         console.error('Ошибка переключения формата:', error);
-        this.addError({
+        await this.addError({
             componentName: this.constructor.name,
             source: 'toggleFormat',
             message: `Ошибка переключения формата: ${format}`,
@@ -368,13 +391,19 @@ async function getFormats() {
         return {};
     } catch (error) {
         console.error('Ошибка получения форматов:', error);
+        await this.addError({
+            componentName: this.constructor.name,
+            source: 'getFormats',
+            message: 'Ошибка получения форматов',
+            details: error
+        });
         return {};
     }
 }
 
 async function exportContent(format = 'html') {
     try {
-        const content = await this.getContent(format);
+        const content = await this._actions.getContent(format);
 
         // Создаем blob для скачивания
         const blob = new Blob([content], { type: 'text/plain' });
@@ -387,7 +416,8 @@ async function exportContent(format = 'html') {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        this.postMessage({
+        // Отправляем сообщение об экспорте
+        await this._sendContentChangedMessage({
             type: 'content-exported',
             format: format,
             content: content,
@@ -396,9 +426,10 @@ async function exportContent(format = 'html') {
         });
 
         return content;
+
     } catch (error) {
         console.error('Ошибка экспорта контента:', error);
-        this.addError({
+        await this.addError({
             componentName: this.constructor.name,
             source: 'exportContent',
             message: 'Ошибка экспорта содержимого',
@@ -406,7 +437,7 @@ async function exportContent(format = 'html') {
         });
 
         // Fallback - показываем в модальном окне
-        const content = await this.getContent(format);
+        const content = await this._actions.getContent(format);
         await this.showModal({
             title: `Экспорт (${format.toUpperCase()})`,
             content: `
@@ -436,15 +467,24 @@ async function exportContent(format = 'html') {
 async function toggleTheme() {
     try {
         const newTheme = this.state.theme === 'light' ? 'dark' : 'light';
-        this.setAttribute('theme', newTheme);
+        await this.updateElement({
+            selector: '.wysiwyg-editor',
+            value: newTheme,
+            property: 'dataset.theme',
+            action: 'set'
+        });
 
-        this.postMessage({
+        this.state.theme = newTheme;
+
+        // Отправляем сообщение о изменении темы
+        await this._sendContentChangedMessage({
             type: 'theme-changed',
             theme: newTheme
         });
+
     } catch (error) {
         console.error('Ошибка переключения темы:', error);
-        this.addError({
+        await this.addError({
             componentName: this.constructor.name,
             source: 'toggleTheme',
             message: 'Ошибка переключения темы',
@@ -457,7 +497,8 @@ async function focus() {
     if (this.quill) {
         this.quill.focus();
 
-        this.postMessage({
+        // Отправляем сообщение о фокусе
+        await this._sendContentChangedMessage({
             type: 'editor-focused'
         });
     }
@@ -467,7 +508,8 @@ async function blur() {
     if (this.quill) {
         this.quill.blur();
 
-        this.postMessage({
+        // Отправляем сообщение о потере фокуса
+        await this._sendContentChangedMessage({
             type: 'editor-blurred'
         });
     }
@@ -478,7 +520,8 @@ async function enable() {
         this.quill.enable(true);
         this.state.readOnly = false;
 
-        this.postMessage({
+        // Отправляем сообщение о включении редактора
+        await this._sendContentChangedMessage({
             type: 'editor-enabled'
         });
     }
@@ -489,7 +532,8 @@ async function disable() {
         this.quill.enable(false);
         this.state.readOnly = true;
 
-        this.postMessage({
+        // Отправляем сообщение о выключении редактора
+        await this._sendContentChangedMessage({
             type: 'editor-disabled'
         });
     }
@@ -510,7 +554,8 @@ async function getStats() {
         readingTime: Math.ceil(words / 200) // среднее время чтения в минутах
     };
 
-    this.postMessage({
+    // Отправляем сообщение о статистике
+    await this._sendContentChangedMessage({
         type: 'stats-calculated',
         stats: stats
     });
@@ -538,9 +583,10 @@ async function insertTable(rows = 3, cols = 3) {
             this.quill.clipboard.dangerouslyPasteHTML(selection.index, tableHTML);
 
             // Обновляем состояние placeholder
-            this._updatePlaceholderState();
+            await this._updatePlaceholderState();
 
-            this.postMessage({
+            // Отправляем сообщение о вставке таблицы
+            await this._sendContentChangedMessage({
                 type: 'table-inserted',
                 rows: rows,
                 columns: cols
@@ -548,7 +594,7 @@ async function insertTable(rows = 3, cols = 3) {
         }
     } catch (error) {
         console.error('Ошибка вставки таблицы:', error);
-        this.addError({
+        await this.addError({
             componentName: this.constructor.name,
             source: 'insertTable',
             message: 'Ошибка вставки таблицы',
@@ -590,9 +636,10 @@ async function addEmbed(type, url) {
                 this.quill.clipboard.dangerouslyPasteHTML(selection.index, embedHTML);
 
                 // Обновляем состояние placeholder
-                this._updatePlaceholderState();
+                await this._updatePlaceholderState();
 
-                this.postMessage({
+                // Отправляем сообщение о вставке embed
+                await this._sendContentChangedMessage({
                     type: 'embed-inserted',
                     embedType: type,
                     url: url
@@ -601,7 +648,7 @@ async function addEmbed(type, url) {
         }
     } catch (error) {
         console.error('Ошибка вставки embed:', error);
-        this.addError({
+        await this.addError({
             componentName: this.constructor.name,
             source: 'addEmbed',
             message: `Ошибка вставки embed: ${type}`,
@@ -610,7 +657,7 @@ async function addEmbed(type, url) {
     }
 }
 
-// Добавьте метод для обновления состояния placeholder
+// Вспомогательные методы
 async function _updatePlaceholderState() {
     if (!this.quill) return;
 
@@ -622,4 +669,73 @@ async function _updatePlaceholderState() {
     } else {
         editorElement.classList.remove('ql-blank');
     }
+}
+
+// Приватный метод для отправки сообщений о изменениях контента
+async function _sendContentChangedMessage(messageData) {
+    try {
+        // Используем правильный API для отправки сообщений другим компонентам
+        if (this.sendMessageToComponent && this._contentChangeSubscribers) {
+            for (const [componentName, componentId] of this._contentChangeSubscribers) {
+                await this.sendMessageToComponent(componentName, componentId, 'editor-content-changed', {
+                    ...messageData,
+                    source: `${this.constructor.name}:${this.id}`,
+                    timestamp: Date.now()
+                });
+            }
+        }
+    } catch (error) {
+        console.warn('Ошибка отправки сообщения о изменении контента:', error);
+    }
+}
+
+// Приватный метод для сохранения выделения
+async function _saveCurrentSelection() {
+    if (!this.quill) return;
+
+    try {
+        const selection = this.quill.getSelection();
+        if (selection) {
+            this._lastKnownSelection = {
+                index: selection.index,
+                length: selection.length,
+                timestamp: Date.now()
+            };
+        }
+    } catch (error) {
+        console.warn('Error saving selection:', error);
+    }
+}
+
+// Приватный метод для обработки изменений текста
+async function _handleTextChange() {
+    if (!this.quill || this._isRestoringSelection) return;
+
+    const contents = this.quill.root.innerHTML;
+    const text = this.quill.getText();
+
+    this.state.value = contents;
+
+    // Обновляем статистику через основной компонент
+    if (this._updateContentStats) {
+        await this._updateContentStats();
+    }
+
+    await this._saveCurrentSelection();
+
+    // Обновляем форматы с небольшой задержкой
+    setTimeout(() => {
+        if (this._updateCurrentFormats) {
+            this._updateCurrentFormats();
+        }
+    }, 0);
+
+    // Отправляем сообщение об изменении контента
+    await this._sendContentChangedMessage({
+        type: 'content-changed',
+        content: contents,
+        text: text,
+        wordCount: this.state.wordCount,
+        charCount: this.state.charCount
+    });
 }

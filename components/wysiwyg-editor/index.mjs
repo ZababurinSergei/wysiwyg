@@ -37,86 +37,14 @@ export class WysiwygEditor extends BaseComponent {
     }
 
     /**
-     * Отправляет сообщение другим компонентам системы
-     * @param {Object} message - Объект сообщения
-     * @param {string} message.type - Тип сообщения
-     * @param {*} [message.data] - Данные сообщения
-     * @param {string} [message.target] - Целевой компонент (опционально)
-     * @param {string} [message.source] - Источник сообщения (по умолчанию имя компонента)
-     * @returns {Promise<Object>} Ответ от получателя
-     */
-    async postMessage(message) {
-        const { type, data, target, source = this.constructor.name } = message;
-
-        console.trace()
-        // Логируем отправку сообщения
-        console.log(`[WysiwygEditor] Отправка сообщения:`, {
-            type,
-            source,
-            target,
-            data,
-            timestamp: new Date().toISOString()
-        });
-
-        // Если указан целевой компонент, отправляем сообщение напрямую
-        if (target) {
-            try {
-                const [componentName, componentId] = target.split(':');
-                const targetComponent = await this.getComponentAsync(componentName, componentId);
-
-                if (targetComponent && typeof targetComponent.postMessage === 'function') {
-                    const response = await targetComponent.postMessage({
-                        type,
-                        data,
-                        source: this.constructor.name,
-                        target: `${this.constructor.name}:${this.id}`
-                    });
-                    return response;
-                } else {
-                    console.warn(`[WysiwygEditor] Целевой компонент не найден или не поддерживает postMessage:`, target);
-                    return { success: false, error: 'Target component not found' };
-                }
-            } catch (error) {
-                console.error(`[WysiwygEditor] Ошибка отправки сообщения компоненту ${target}:`, error);
-                return { success: false, error: error.message };
-            }
-        }
-
-        // Глобальная рассылка сообщения всем заинтересованным компонентам
-        const eventDetail = {
-            type,
-            data,
-            source: this.constructor.name,
-            sourceId: this.id,
-            timestamp: Date.now()
-        };
-
-        // Отправляем кастомное событие для глобальной коммуникации
-        const event = new CustomEvent('yato-component-message', {
-            detail: eventDetail,
-            bubbles: true,
-            composed: true
-        });
-
-        this.dispatchEvent(event);
-
-        // Возвращаем подтверждение отправки
-        return {
-            success: true,
-            message: 'Message sent successfully',
-            timestamp: eventDetail.timestamp
-        };
-    }
-
-    /**
-     * Обрабатывает входящие сообщения от других компонентов
+     * Правильная реализация postMessage для входящих сообщений
      * @param {Object} message - Входящее сообщение
      * @param {string} message.type - Тип сообщения
      * @param {*} message.data - Данные сообщения
      * @param {string} message.source - Источник сообщения
      * @returns {Promise<Object>} Ответ на сообщение
      */
-    async handleIncomingMessage(message) {
+    async postMessage(message) {
         const { type, data, source } = message;
 
         console.log(`[WysiwygEditor] Получено сообщение от ${source}:`, { type, data });
@@ -136,7 +64,7 @@ export class WysiwygEditor extends BaseComponent {
             // Установка содержимого редактора
             'set-content': async () => {
                 if (data && data.content !== undefined) {
-                    await this.setContent(data.content, data.format || 'html');
+                    await this._actions.setContent(data.content, data.format || 'html');
                     return {
                         success: true,
                         message: 'Content set successfully',
@@ -149,7 +77,7 @@ export class WysiwygEditor extends BaseComponent {
 
             // Очистка редактора
             'clear-content': async () => {
-                await this.clearContent();
+                await this._actions.clearContent();
                 return {
                     success: true,
                     message: 'Editor cleared successfully'
@@ -159,7 +87,7 @@ export class WysiwygEditor extends BaseComponent {
             // Применение форматирования
             'apply-format': async () => {
                 if (data && data.format) {
-                    await this.toggleFormat(data.format, data.value);
+                    await this._actions.toggleFormat(data.format, data.value);
                     return {
                         success: true,
                         message: `Format ${data.format} applied`,
@@ -171,7 +99,7 @@ export class WysiwygEditor extends BaseComponent {
 
             // Экспорт содержимого
             'export-content': async () => {
-                const content = await this.getContent(data?.format || 'html');
+                const content = await this._actions.getContent(data?.format || 'html');
                 return {
                     success: true,
                     data: {
@@ -186,7 +114,7 @@ export class WysiwygEditor extends BaseComponent {
 
             // Фокус на редактор
             'focus-editor': async () => {
-                await this.focusEditor();
+                await this._actions.focus();
                 return {
                     success: true,
                     message: 'Editor focused'
@@ -195,10 +123,104 @@ export class WysiwygEditor extends BaseComponent {
 
             // Запрос статистики
             'get-stats': async () => {
-                const stats = await this.getStats();
+                const stats = await this._actions.getStats();
                 return {
                     success: true,
                     data: stats
+                };
+            },
+
+            // Вставка текста
+            'insert-text': async () => {
+                if (data && data.text) {
+                    await this._actions.insertText(data.text, data.formats || {});
+                    return {
+                        success: true,
+                        message: 'Text inserted successfully'
+                    };
+                }
+                return { success: false, error: 'No text provided' };
+            },
+
+            // Вставка HTML
+            'insert-html': async () => {
+                if (data && data.html) {
+                    await this._actions.insertHTML(data.html);
+                    return {
+                        success: true,
+                        message: 'HTML inserted successfully'
+                    };
+                }
+                return { success: false, error: 'No HTML provided' };
+            },
+
+            // Переключение темы
+            'toggle-theme': async () => {
+                await this._actions.toggleTheme();
+                return {
+                    success: true,
+                    message: 'Theme toggled',
+                    theme: this.state.theme
+                };
+            },
+
+            // Включение/выключение редактора
+            'set-readonly': async () => {
+                if (data && typeof data.readOnly === 'boolean') {
+                    if (data.readOnly) {
+                        await this._actions.disable();
+                    } else {
+                        await this._actions.enable();
+                    }
+                    return {
+                        success: true,
+                        message: `Editor ${data.readOnly ? 'disabled' : 'enabled'}`,
+                        readOnly: this.state.readOnly
+                    };
+                }
+                return { success: false, error: 'No readOnly value provided' };
+            },
+
+            // Вставка изображения
+            'insert-image': async () => {
+                if (data && data.url) {
+                    await this._actions.insertImage(data.url, data.alt || '');
+                    return {
+                        success: true,
+                        message: 'Image inserted successfully'
+                    };
+                }
+                return { success: false, error: 'No image URL provided' };
+            },
+
+            // Вставка ссылки
+            'insert-link': async () => {
+                await this._actions.insertLink();
+                return {
+                    success: true,
+                    message: 'Link insertion dialog opened'
+                };
+            },
+
+            // Вставка таблицы
+            'insert-table': async () => {
+                const rows = data?.rows || 3;
+                const cols = data?.cols || 3;
+                await this._actions.insertTable(rows, cols);
+                return {
+                    success: true,
+                    message: 'Table inserted successfully',
+                    rows,
+                    columns: cols
+                };
+            },
+
+            // Получение текущих форматов
+            'get-formats': async () => {
+                const formats = await this._actions.getFormats();
+                return {
+                    success: true,
+                    data: formats
                 };
             }
         };
@@ -211,6 +233,12 @@ export class WysiwygEditor extends BaseComponent {
                 return response;
             } catch (error) {
                 console.error(`[WysiwygEditor] Ошибка обработки сообщения ${type}:`, error);
+                this.addError({
+                    componentName: this.constructor.name,
+                    source: 'postMessage',
+                    message: `Ошибка обработки сообщения ${type}`,
+                    details: error
+                });
                 return {
                     success: false,
                     error: error.message,
@@ -230,78 +258,50 @@ export class WysiwygEditor extends BaseComponent {
         };
     }
 
+    /**
+     * Отправляет сообщение другому компоненту
+     * @param {string} targetComponent - Имя целевого компонента
+     * @param {string} targetId - ID целевого компонента
+     * @param {string} type - Тип сообщения
+     * @param {*} data - Данные сообщения
+     * @returns {Promise<Object>} Ответ от целевого компонента
+     */
+    async sendMessageToComponent(targetComponent, targetId, type, data = {}) {
+        try {
+            const target = await this.getComponentAsync(targetComponent, targetId);
+            if (target && typeof target.postMessage === 'function') {
+                const response = await target.postMessage({
+                    type,
+                    data,
+                    source: `${this.constructor.name}:${this.id}`
+                });
+                return response;
+            } else {
+                console.warn(`Целевой компонент ${targetComponent}:${targetId} не найден или не поддерживает postMessage`);
+                return { success: false, error: 'Target component not found' };
+            }
+        } catch (error) {
+            console.error(`Ошибка отправки сообщения компоненту ${targetComponent}:${targetId}:`, error);
+            this.addError({
+                componentName: this.constructor.name,
+                source: 'sendMessageToComponent',
+                message: `Ошибка отправки сообщения компоненту ${targetComponent}`,
+                details: error
+            });
+            return { success: false, error: error.message };
+        }
+    }
+
     async _componentReady() {
         this._controller = await controller(this);
         this._actions = await createActions(this);
-
-        // Устанавливаем обработчик входящих сообщений
-        this._setupMessageListener();
 
         await this.fullRender(this.state);
 
         // Инициализация редактора
         await this._initEditor();
 
-        // Отправляем сообщение о готовности
-        await this.postMessage({
-            type: 'component-ready',
-            data: {
-                component: this.constructor.name,
-                id: this.id,
-                capabilities: ['edit', 'format', 'export', 'stats']
-            }
-        });
-
         return true;
-    }
-
-    /**
-     * Настраивает слушатель для входящих сообщений
-     */
-    _setupMessageListener() {
-        this._messageHandler = (event) => {
-            // Проверяем, адресовано ли сообщение этому компоненту
-            const message = event.detail;
-            if (message && this._shouldHandleMessage(message)) {
-                this.handleIncomingMessage(message).then(response => {
-                    // Отправляем ответ обратно отправителю, если нужно
-                    if (message.requireResponse && message.source) {
-                        this.postMessage({
-                            type: 'response',
-                            data: response,
-                            target: message.source,
-                            source: this.constructor.name
-                        });
-                    }
-                });
-            }
-        };
-
-        // Слушаем глобальные события компонентов
-        window.addEventListener('yato-component-message', this._messageHandler);
-    }
-
-    /**
-     * Проверяет, должно ли сообщение быть обработано этим компонентом
-     */
-    _shouldHandleMessage(message) {
-        // Если сообщение адресовано конкретно этому компоненту
-        if (message.target && message.target === `${this.constructor.name}:${this.id}`) {
-            return true;
-        }
-
-        // Если сообщение широковещательное и соответствует нашим типам
-        const broadcastTypes = [
-            'get-editor-state',
-            'set-content',
-            'clear-content',
-            'apply-format',
-            'export-content',
-            'focus-editor',
-            'get-stats'
-        ];
-
-        return !message.target && broadcastTypes.includes(message.type);
     }
 
     async _initEditor() {
@@ -362,19 +362,17 @@ export class WysiwygEditor extends BaseComponent {
                 this.state.value = initialValue;
             }
 
-            // ПРАВИЛЬНАЯ НАСТРОЙКА СЛУШАТЕЛЕЙ ДЛЯ SHADOW DOM
-            this._setupQuillEventListeners();
+            // Настройка слушателей событий
+            await this._setupQuillEventListeners();
 
-            // Устанавливаем курсор в начало после инициализации с небольшой задержкой
+            // Устанавливаем курсор в начало после инициализации
             setTimeout(() => {
                 if (this.quill) {
-                    // Если есть контент, устанавливаем курсор в начало
                     const length = this.quill.getLength();
                     if (length > 1) {
                         this.quill.setSelection(0, 0, 'silent');
                         this._lastKnownSelection = { index: 0, length: 0, timestamp: Date.now() };
                     } else {
-                        // Если документ пустой, курсор уже в правильном положении
                         this._lastKnownSelection = { index: 0, length: 0, timestamp: Date.now() };
                     }
                     this._updateCurrentFormats();
@@ -383,13 +381,13 @@ export class WysiwygEditor extends BaseComponent {
             }, 100);
 
             // Настройка наблюдения за ресайзом
-            this._setupResizeObserver();
+            await this._setupResizeObserver();
 
             // Применение кастомных стилей
-            this._applyCustomStyles();
+            await this._applyCustomStyles();
 
             // Обновляем статистику
-            this._updateContentStats();
+            await this._updateContentStats();
 
             console.log(`WYSIWYG редактор инициализирован с ID: ${this._id}`);
         } catch (error) {
@@ -398,12 +396,10 @@ export class WysiwygEditor extends BaseComponent {
         }
     }
 
-    // НОВЫЙ МЕТОД: Настройка слушателей событий Quill для Shadow DOM
-    _setupQuillEventListeners() {
+    async _setupQuillEventListeners() {
         if (!this.quill) return;
         const editorElement = this.quill.root;
 
-        // Слушаем события ввода
         editorElement.addEventListener('input', this._boundHandleTextChange);
         editorElement.addEventListener('keyup', (e) => {
             this._boundHandleTextChange();
@@ -413,27 +409,21 @@ export class WysiwygEditor extends BaseComponent {
         });
         editorElement.addEventListener('keydown', this._boundHandleTextChange);
 
-        // Слушаем события выделения
         editorElement.addEventListener('click', this._boundHandleSelectionChange);
         editorElement.addEventListener('mouseup', this._boundHandleSelectionChange);
         editorElement.addEventListener('keyup', this._boundHandleSelectionChange);
 
-        // Способ 3: MutationObserver для отслеживания изменений DOM
-        this._setupMutationObserver();
+        await this._setupMutationObserver();
 
         console.log('Quill event listeners setup completed');
     }
 
-    /**
-     * Настройка MutationObserver для отслеживания изменений DOM
-     */
-    _setupMutationObserver() {
+    async _setupMutationObserver() {
         if (!this.quill) return;
 
         this._mutationObserver = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
                 if (mutation.type === 'childList' || mutation.type === 'characterData') {
-                    // Задержка для стабилизации DOM
                     setTimeout(() => {
                         this._boundHandleTextChange();
                     }, 0);
@@ -441,7 +431,6 @@ export class WysiwygEditor extends BaseComponent {
             });
         });
 
-        // Наблюдаем за изменениями в редакторе
         this._mutationObserver.observe(this.quill.root, {
             childList: true,
             subtree: true,
@@ -451,40 +440,25 @@ export class WysiwygEditor extends BaseComponent {
         console.log('MutationObserver setup completed');
     }
 
-    _handleTextChange(delta, oldDelta, source) {
+    async _handleTextChange(delta, oldDelta, source) {
         if (!this.quill || this._isRestoringSelection) return;
 
         const contents = this.quill.root.innerHTML;
         const text = this.quill.getText();
 
         this.state.value = contents;
-        this._updateContentStats();
+        await this._updateContentStats();
 
-        // Сохраняем текущее выделение
-        this._saveCurrentSelection();
+        await this._saveCurrentSelection();
 
-        // Обновляем форматы с небольшой задержкой
         setTimeout(() => {
             this._updateCurrentFormats();
         }, 0);
-
-        // Отправляем сообщение об изменении контента
-        this.postMessage({
-            type: 'content-changed',
-            data: {
-                content: contents,
-                text: text,
-                wordCount: this.state.wordCount,
-                charCount: this.state.charCount,
-                delta: delta
-            }
-        });
     }
 
-    _handleSelectionChange(range, oldRange, source) {
+    async _handleSelectionChange(range, oldRange, source) {
         if (!this.quill) return;
 
-        // Игнорируем события, если мы сами восстанавливаем выделение
         if (this._isRestoringSelection || this._ignoreNextSelectionChange) {
             console.log('Ignoring selection change during restoration');
             this._ignoreNextSelectionChange = false;
@@ -500,38 +474,22 @@ export class WysiwygEditor extends BaseComponent {
                 timestamp: Date.now()
             };
 
-            this._updateCurrentFormats();
-
-            // Отправляем сообщение об изменении выделения
-            this.postMessage({
-                type: 'selection-changed',
-                data: {
-                    range: range,
-                    formats: this.state.formats
-                }
-            });
+            await this._updateCurrentFormats();
         }
     }
 
-    /**
-     * Корректирует позицию курсора при переносе на новую строку
-     * @private
-     */
-    _correctCursorPosition() {
+    async _correctCursorPosition() {
         if (!this.quill) return;
 
         const selection = this.quill.getSelection();
         if (!selection) return;
 
-        // Получаем текущий текст
         const text = this.quill.getText();
 
-        // Если курсор находится в конце строки и следующий символ - перенос
         if (selection.index > 0 && selection.length === 0) {
             const prevChar = text.charAt(selection.index - 1);
             const nextChar = text.charAt(selection.index);
 
-            // Если предыдущий символ - перенос строки, корректируем позицию
             if (prevChar === '\n' && nextChar !== '\n') {
                 setTimeout(() => {
                     try {
@@ -544,8 +502,7 @@ export class WysiwygEditor extends BaseComponent {
         }
     }
 
-    // Сохраняет текущее выделение
-    _saveCurrentSelection() {
+    async _saveCurrentSelection() {
         if (!this.quill) return;
 
         try {
@@ -563,22 +520,17 @@ export class WysiwygEditor extends BaseComponent {
         }
     }
 
-    // Восстанавливает выделение
-    _restoreSelection() {
+    async _restoreSelection() {
         if (!this.quill || !this._lastKnownSelection) return;
 
-        // Устанавливаем флаг, чтобы избежать рекурсии
         this._isRestoringSelection = true;
         this._ignoreNextSelectionChange = true;
 
         try {
             const length = this.quill.getLength();
-
-            // Безопасное вычисление позиции
             let safeIndex = Math.max(0, Math.min(this._lastKnownSelection.index, length - 1));
             let safeLength = Math.max(0, Math.min(this._lastKnownSelection.length, length - safeIndex));
 
-            // Если документ пустой, устанавливаем курсор в начало
             if (length <= 1) {
                 safeIndex = 0;
                 safeLength = 0;
@@ -590,12 +542,10 @@ export class WysiwygEditor extends BaseComponent {
                 documentLength: length
             });
 
-            // Используем setTimeout для гарантированного применения после обновления DOM
             setTimeout(() => {
                 try {
                     this.quill.setSelection(safeIndex, safeLength, 'silent');
 
-                    // Обновляем сохраненное выделение
                     this._lastKnownSelection = {
                         index: safeIndex,
                         length: safeLength,
@@ -607,7 +557,6 @@ export class WysiwygEditor extends BaseComponent {
                 } catch (error) {
                     console.warn('Error in selection restoration:', error);
 
-                    // Запасной вариант: установить курсор в начало
                     try {
                         this.quill.setSelection(0, 0, 'silent');
                     } catch (fallbackError) {
@@ -619,7 +568,6 @@ export class WysiwygEditor extends BaseComponent {
         } catch (error) {
             console.warn('Error preparing selection restoration:', error);
         } finally {
-            // Сбрасываем флаги с задержкой
             setTimeout(() => {
                 this._isRestoringSelection = false;
                 this._ignoreNextSelectionChange = false;
@@ -627,60 +575,53 @@ export class WysiwygEditor extends BaseComponent {
         }
     }
 
-    // Обновляет текущие форматы
-    _updateCurrentFormats() {
+    async _updateCurrentFormats() {
         if (!this.quill) return;
 
         try {
             let selection = this.quill.getSelection();
 
-            // Если нет текущего выделения, используем сохраненное (но только если оно свежее)
             if (!selection && this._lastKnownSelection) {
                 const timeDiff = Date.now() - this._lastKnownSelection.timestamp;
-                // Используем сохраненное выделение только если оно не старше 5 секунд
                 if (timeDiff < 5000) {
                     selection = this._lastKnownSelection;
                 }
             }
 
-            // Если все еще нет выделения, не обновляем форматы
             if (!selection) {
                 return;
             }
 
             const format = this.quill.getFormat(selection);
             this.state.formats = Object.keys(format).filter(key => format[key]);
-            this._updateFormatsDisplay();
+            await this._updateFormatsDisplay();
 
         } catch (error) {
             console.warn('Error updating formats:', error);
         }
     }
 
-    _updateContentStats() {
+    async _updateContentStats() {
         if (!this.quill) return;
 
         const text = this.quill.getText().trim();
         const html = this.quill.root.innerHTML;
 
-        // Подсчет слов (игнорируем HTML теги)
         const textWithoutTags = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
         const words = textWithoutTags ? textWithoutTags.split(/\s+/).length : 0;
 
-        // Подсчет символов (без пробелов)
         const characters = text.replace(/\s/g, '').length;
 
-        // Подсчет параграфов
         const paragraphs = (html.match(/<p[^>]*>/g) || []).length;
 
         this.state.wordCount = words;
         this.state.charCount = characters;
         this.state.paragraphCount = paragraphs;
 
-        this._updateStatsDisplay();
+        await this._updateStatsDisplay();
     }
 
-    _setupResizeObserver() {
+    async _setupResizeObserver() {
         if (!this.quill) return;
 
         this.resizeObserver = new ResizeObserver(entries => {
@@ -695,20 +636,14 @@ export class WysiwygEditor extends BaseComponent {
         }
     }
 
-    _handleResize(entry) {
-        this.postMessage({
-            type: 'editor-resized',
-            data: {
-                width: entry.contentRect.width,
-                height: entry.contentRect.height
-            }
-        });
+    async _handleResize(entry) {
+        // Можно добавить логику обработки ресайза при необходимости
+        console.log('Editor resized:', entry.contentRect);
     }
 
-    _applyCustomStyles() {
+    async _applyCustomStyles() {
         if (!this.quill) return;
 
-        // Применение высоты редактора
         const editorContainer = this.shadowRoot.querySelector('.ql-container');
         if (editorContainer && this.state.height) {
             editorContainer.style.height = this.state.height;
@@ -716,29 +651,29 @@ export class WysiwygEditor extends BaseComponent {
         }
     }
 
-    _updateStatsDisplay() {
-        this.updateElement({
+    async _updateStatsDisplay() {
+        await this.updateElement({
             selector: '#wordCount',
             value: this.state.wordCount.toString(),
             property: 'textContent'
         });
 
-        this.updateElement({
+        await this.updateElement({
             selector: '#charCount',
             value: this.state.charCount.toString(),
             property: 'textContent'
         });
 
-        this.updateElement({
+        await this.updateElement({
             selector: '#paragraphCount',
             value: this.state.paragraphCount.toString(),
             property: 'textContent'
         });
     }
 
-    _updateFormatsDisplay() {
+    async _updateFormatsDisplay() {
         const formats = this.state.formats?.join(', ') || 'Normal text';
-        this.updateElement({
+        await this.updateElement({
             selector: '#formatsDisplay',
             value: formats,
             property: 'textContent'
@@ -751,25 +686,25 @@ export class WysiwygEditor extends BaseComponent {
         const attributeHandlers = {
             'value': async () => {
                 if (newValue !== this.state.value) {
-                    await this.setContent(newValue, 'html');
+                    await this._actions.setContent(newValue, 'html');
                 }
             },
-            'placeholder': () => {
+            'placeholder': async () => {
                 this.quill.root.setAttribute('data-placeholder', newValue);
                 this.state.placeholder = newValue;
             },
-            'read-only': () => {
+            'read-only': async () => {
                 const isReadOnly = newValue !== null;
                 this.quill.enable(!isReadOnly);
                 this.state.readOnly = isReadOnly;
             },
-            'theme': () => {
+            'theme': async () => {
                 this.state.theme = newValue;
-                this._applyTheme();
+                await this._applyTheme();
             },
-            'height': () => {
+            'height': async () => {
                 this.state.height = newValue;
-                this._applyCustomStyles();
+                await this._applyCustomStyles();
             }
         };
 
@@ -778,7 +713,7 @@ export class WysiwygEditor extends BaseComponent {
         }
     }
 
-    _applyTheme() {
+    async _applyTheme() {
         const editorElement = this.shadowRoot.querySelector('.wysiwyg-editor');
         if (editorElement) {
             editorElement.setAttribute('data-theme', this.state.theme);
@@ -786,13 +721,7 @@ export class WysiwygEditor extends BaseComponent {
     }
 
     async _componentDisconnected() {
-        // Очистка слушателей сообщений
-        if (this._messageHandler) {
-            window.removeEventListener('yato-component-message', this._messageHandler);
-        }
-
-        // Очистка слушателей событий
-        this._cleanupEventListeners();
+        await this._cleanupEventListeners();
 
         if (this.resizeObserver) {
             this.resizeObserver.disconnect();
@@ -810,24 +739,13 @@ export class WysiwygEditor extends BaseComponent {
         if (this._controller?.destroy) {
             await this._controller.destroy();
         }
-
-        // Отправляем сообщение об отключении
-        await this.postMessage({
-            type: 'component-disconnected',
-            data: {
-                component: this.constructor.name,
-                id: this.id
-            }
-        });
     }
 
-    // НОВЫЙ МЕТОД: Очистка слушателей событий
-    _cleanupEventListeners() {
+    async _cleanupEventListeners() {
         if (!this.quill) return;
 
         const editorElement = this.quill.root;
 
-        // Удаляем все добавленные слушатели
         editorElement.removeEventListener('input', this._boundHandleTextChange);
         editorElement.removeEventListener('keyup', this._boundHandleTextChange);
         editorElement.removeEventListener('keydown', this._boundHandleTextChange);
@@ -836,204 +754,7 @@ export class WysiwygEditor extends BaseComponent {
         editorElement.removeEventListener('keyup', this._boundHandleSelectionChange);
     }
 
-    // Публичные методы для API
-    async getContent(format = 'html') {
-        if (!this.quill) return '';
-
-        switch (format) {
-            case 'html':
-                return this.quill.root.innerHTML;
-            case 'text':
-                return this.quill.getText();
-            case 'delta':
-                return this.quill.getContents();
-            default:
-                return this.quill.root.innerHTML;
-        }
-    }
-
-    async setContent(content, format = 'html') {
-        if (!this.quill) return;
-
-        // Сохраняем выделение перед изменением контента
-        this._saveCurrentSelection();
-
-        this._isRestoringSelection = true;
-
-        try {
-            // Получаем текущую длину документа
-            const oldLength = this.quill.getLength();
-
-            switch (format) {
-                case 'html':
-                    this.quill.root.innerHTML = content;
-                    break;
-                case 'text':
-                    this.quill.setText(content);
-                    break;
-                case 'delta':
-                    this.quill.setContents(content);
-                    break;
-                default:
-                    this.quill.root.innerHTML = content;
-            }
-
-            this.state.value = this.quill.root.innerHTML;
-            this._updateContentStats();
-
-            // Ждем обновления DOM и восстанавливаем выделение
-            setTimeout(() => {
-                this._restoreSelection();
-                this._updateCurrentFormats();
-            }, 10);
-
-        } catch (error) {
-            console.error('Ошибка установки контента:', error);
-            this.addError({
-                componentName: this.constructor.name,
-                source: 'setContent',
-                message: 'Ошибка установки содержимого редактора',
-                details: error
-            });
-        } finally {
-            setTimeout(() => {
-                this._isRestoringSelection = false;
-            }, 100);
-        }
-    }
-
-    async clearContent() {
-        if (!this.quill) return;
-
-        const length = this.quill.getLength();
-        this.quill.deleteText(0, length);
-    }
-
-    async insertText(text, formats = {}) {
-        if (!this.quill) return;
-
-        const selection = this.quill.getSelection();
-        if (selection) {
-            this.quill.insertText(selection.index, text, formats);
-            this.quill.setSelection(selection.index + text.length, 0);
-        }
-    }
-
-    async insertHTML(html) {
-        if (!this.quill) return;
-
-        const selection = this.quill.getSelection();
-        if (selection) {
-            const delta = this.quill.clipboard.convert(html);
-            this.quill.updateContents(delta);
-        }
-    }
-
-    async focusEditor() {
-        if (this.quill) {
-            this.quill.focus();
-        }
-    }
-
-    async blurEditor() {
-        if (this.quill) {
-            this.quill.blur();
-        }
-    }
-
-    async getFormats() {
-        if (!this.quill) return {};
-
-        const selection = this.quill.getSelection();
-        if (selection) {
-            return this.quill.getFormat(selection);
-        }
-        return {};
-    }
-
-    async toggleFormat(format, value = null) {
-        if (!this.quill) return;
-
-        try {
-            // Сохраняем текущее выделение перед операцией
-            this._saveCurrentSelection();
-
-            let selection = this.quill.getSelection();
-
-            // Если нет выделения, используем сохраненное (только свежее)
-            if (!selection && this._lastKnownSelection) {
-                const timeDiff = Date.now() - this._lastKnownSelection.timestamp;
-                if (timeDiff < 5000) {
-                    selection = this._lastKnownSelection;
-                }
-            }
-
-            if (!selection) {
-                console.warn('No selection available for formatting');
-                return;
-            }
-
-            if (value === null) {
-                const currentFormat = this.quill.getFormat(selection);
-                value = !currentFormat[format];
-            }
-
-            // Применяем форматирование
-            this.quill.formatText(selection.index, selection.length, format, value);
-
-            // Восстанавливаем выделение после форматирования
-            setTimeout(() => {
-                this._restoreSelection();
-                this._updateCurrentFormats();
-            }, 10);
-
-            this.postMessage({
-                type: 'format-toggled',
-                data: {
-                    format: format,
-                    value: value
-                }
-            });
-
-        } catch (error) {
-            console.error('Ошибка переключения формата:', error);
-            this.addError({
-                componentName: this.constructor.name,
-                source: 'toggleFormat',
-                message: `Ошибка переключения формата: ${format}`,
-                details: error
-            });
-        }
-    }
-
-    // Метод для принудительной установки курсора в начало
-    async setCursorToStart() {
-        if (!this.quill) return;
-
-        try {
-            this.quill.setSelection(0, 0, 'silent');
-            this._lastKnownSelection = { index: 0, length: 0, timestamp: Date.now() };
-            console.log('Cursor set to start');
-        } catch (error) {
-            console.warn('Error setting cursor to start:', error);
-        }
-    }
-
-    // Метод для принудительной установки курсора в конец
-    async setCursorToEnd() {
-        if (!this.quill) return;
-
-        try {
-            const length = this.quill.getLength();
-            this.quill.setSelection(length, 0, 'silent');
-            this._lastKnownSelection = { index: length, length: 0, timestamp: Date.now() };
-            console.log('Cursor set to end');
-        } catch (error) {
-            console.warn('Error setting cursor to end:', error);
-        }
-    }
-
-    // Метод для получения состояния редактора
+    // Публичные методы для API (используют actions)
     async getEditorState() {
         return {
             value: this.state.value,
@@ -1044,6 +765,59 @@ export class WysiwygEditor extends BaseComponent {
             readOnly: this.state.readOnly,
             theme: this.state.theme
         };
+    }
+
+    // Методы для удобства использования компонента
+    async getContent(format = 'html') {
+        return await this._actions.getContent(format);
+    }
+
+    async setContent(content, format = 'html') {
+        return await this._actions.setContent(content, format);
+    }
+
+    async clearContent() {
+        return await this._actions.clearContent();
+    }
+
+    async insertText(text, formats = {}) {
+        return await this._actions.insertText(text, formats);
+    }
+
+    async insertHTML(html) {
+        return await this._actions.insertHTML(html);
+    }
+
+    async toggleFormat(format, value = null) {
+        return await this._actions.toggleFormat(format, value);
+    }
+
+    async focusEditor() {
+        return await this._actions.focus();
+    }
+
+    async blurEditor() {
+        return await this._actions.blur();
+    }
+
+    async enableEditor() {
+        return await this._actions.enable();
+    }
+
+    async disableEditor() {
+        return await this._actions.disable();
+    }
+
+    async toggleTheme() {
+        return await this._actions.toggleTheme();
+    }
+
+    async getStats() {
+        return await this._actions.getStats();
+    }
+
+    async exportContent(format = 'html') {
+        return await this._actions.exportContent(format);
     }
 }
 

@@ -1,8 +1,508 @@
 /* components/wysiwyg-editor/css/index.css */
 @import url('./quill.css');
+
+/* Космическая тема для WYSIWYG редактора */
+.wysiwyg-editor {
+    --cosmic-primary: #6366f1;
+    --cosmic-primary-glow: rgba(99, 102, 241, 0.4);
+    --cosmic-secondary: #8b5cf6;
+    --cosmic-accent: #06b6d4;
+    --cosmic-accent-glow: rgba(6, 182, 212, 0.4);
+    --cosmic-nebula: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #06b6d4 100%);
+    --cosmic-stardust: rgba(255, 255, 255, 0.1);
+    --cosmic-deep-space: #0f0f23;
+    --cosmic-dark-matter: #1a1a2e;
+    --cosmic-galaxy: #16213e;
+    --cosmic-meteor: #e879f9;
+    --cosmic-comet: #38bdf8;
+
+    /* Светлая тема - Космический рассвет */
+    --editor-bg: linear-gradient(160deg, #f0f4ff 0%, #e6f7ff 100%);
+    --editor-surface: rgba(255, 255, 255, 0.95);
+    --editor-border: rgba(99, 102, 241, 0.2);
+    --editor-shadow: 0 8px 32px rgba(99, 102, 241, 0.1);
+    --editor-text: #1e293b;
+    --editor-text-secondary: #64748b;
+    --editor-hover: rgba(99, 102, 241, 0.05);
+    --editor-active: rgba(99, 102, 241, 0.1);
+}
+
+/* Темная тема - Глубокий космос */
+[data-theme="dark"] .wysiwyg-editor {
+    --editor-bg: linear-gradient(160deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+    --editor-surface: rgba(26, 26, 46, 0.95);
+    --editor-border: rgba(139, 92, 246, 0.3);
+    --editor-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    --editor-text: #f1f5f9;
+    --editor-text-secondary: #94a3b8;
+    --editor-hover: rgba(139, 92, 246, 0.1);
+    --editor-active: rgba(139, 92, 246, 0.2);
+}
+
+/* Основной контейнер редактора */
+.wysiwyg-editor {
+    background: var(--editor-bg);
+    border-radius: 20px;
+    padding: 0;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--editor-border);
+    box-shadow: var(--editor-shadow);
+}
+
+/* Эффект звездной пыли */
+.wysiwyg-editor::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+            radial-gradient(circle at 20% 80%, var(--cosmic-primary-glow) 0%, transparent 50%),
+            radial-gradient(circle at 80% 20%, var(--cosmic-accent-glow) 0%, transparent 50%);
+    opacity: 0.3;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Карточка редактора */
+.wysiwyg-editor .card {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    backdrop-filter: none;
+}
+
+.wysiwyg-editor .card.full-width {
+    width: 100%;
+    margin: 0;
+}
+
+/* Заголовок карточки */
+.wysiwyg-editor .card-header {
+    background: var(--editor-surface);
+    padding: 24px 32px 0;
+    border-bottom: 1px solid var(--editor-border);
+    position: relative;
+    z-index: 1;
+    border-radius: 20px 20px 0 0;
+}
+
+.wysiwyg-editor .card-title {
+    color: var(--editor-text);
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 20px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--cosmic-nebula);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.wysiwyg-editor .card-icon {
+    font-size: 1.75rem;
+    background: var(--cosmic-nebula);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+/* Панель действий */
+.wysiwyg-editor .action-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.wysiwyg-editor .action-bar .btn {
+    background: var(--editor-surface);
+    border: 1px solid var(--editor-border);
+    color: var(--editor-text);
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+}
+
+.wysiwyg-editor .action-bar .btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: var(--cosmic-nebula);
+    transition: left 0.3s ease;
+    z-index: -1;
+}
+
+.wysiwyg-editor .action-bar .btn:hover::before {
+    left: 0;
+}
+
+.wysiwyg-editor .action-bar .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px var(--cosmic-primary-glow);
+    border-color: transparent;
+    color: white;
+}
+
+/* Специфичные стили кнопок */
+.wysiwyg-editor .action-bar .btn-success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-color: transparent;
+    color: white;
+}
+
+.wysiwyg-editor .action-bar .btn-info {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    border-color: transparent;
+    color: white;
+}
+
+.wysiwyg-editor .action-bar .btn-warning {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    border-color: transparent;
+    color: white;
+}
+
+.wysiwyg-editor .action-bar .btn-danger {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    border-color: transparent;
+    color: white;
+}
+
+/* Контент карточки */
+.wysiwyg-editor .card-content {
+    padding: 0;
+    position: relative;
+    z-index: 1;
+}
+
+/* Контейнер редактора */
+.wysiwyg-editor .editor-container {
+    padding: 32px;
+    background: var(--editor-surface);
+    position: relative;
+}
+
+/* Quill Editor кастомные стили */
+.wysiwyg-editor .ql-container {
+    border: none !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+    background: transparent;
+}
+
+.wysiwyg-editor .ql-editor {
+    padding: 0;
+    color: var(--editor-text);
+    background: transparent;
+    min-height: 300px;
+}
+
+.wysiwyg-editor .ql-editor.ql-blank::before {
+    color: var(--editor-text-secondary);
+    font-style: italic;
+    font-size: 16px;
+    left: 0 !important;
+    right: 0 !important;
+}
+
+/* Toolbar Quill */
+.wysiwyg-editor .ql-toolbar {
+    background: var(--editor-surface);
+    border: 1px solid var(--editor-border) !important;
+    border-radius: 16px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    position: relative;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.wysiwyg-editor .ql-toolbar .ql-formats {
+    margin-right: 24px;
+}
+
+.wysiwyg-editor .ql-toolbar .ql-picker,
+.wysiwyg-editor .ql-toolbar button {
+    color: var(--editor-text) !important;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.wysiwyg-editor .ql-toolbar .ql-picker:hover,
+.wysiwyg-editor .ql-toolbar button:hover {
+    background: var(--editor-hover) !important;
+    color: var(--cosmic-primary) !important;
+}
+
+.wysiwyg-editor .ql-toolbar .ql-picker.ql-expanded {
+    background: var(--editor-active) !important;
+}
+
+.wysiwyg-editor .ql-toolbar .ql-stroke {
+    stroke: var(--editor-text) !important;
+}
+
+.wysiwyg-editor .ql-toolbar .ql-fill {
+    fill: var(--editor-text) !important;
+}
+
+.wysiwyg-editor .ql-toolbar .ql-picker-options {
+    background: var(--editor-surface) !important;
+    border: 1px solid var(--editor-border) !important;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    padding: 8px;
+}
+
+.wysiwyg-editor .ql-toolbar .ql-picker-item {
+    border-radius: 6px;
+    color: var(--editor-text) !important;
+    padding: 8px 12px;
+    margin: 2px 0;
+}
+
+.wysiwyg-editor .ql-toolbar .ql-picker-item:hover {
+    background: var(--editor-hover) !important;
+}
+
+/* Секция статистики */
+.wysiwyg-editor .stats-section {
+    background: var(--editor-surface);
+    padding: 24px 32px;
+    border-top: 1px solid var(--editor-border);
+    border-radius: 0 0 20px 20px;
+    position: relative;
+}
+
+.wysiwyg-editor .stats-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 32px;
+    right: 32px;
+    height: 1px;
+    background: var(--cosmic-nebula);
+    opacity: 0.3;
+}
+
+/* Сетка статистики */
+.wysiwyg-editor .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.wysiwyg-editor .stat-item {
+    background: var(--editor-surface);
+    border: 1px solid var(--editor-border);
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+}
+
+.wysiwyg-editor .stat-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--cosmic-nebula);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.wysiwyg-editor .stat-item:hover::before {
+    opacity: 1;
+}
+
+.wysiwyg-editor .stat-item:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    border-color: transparent;
+}
+
+.wysiwyg-editor .stat-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--editor-text);
+    margin-bottom: 4px;
+    background: var(--cosmic-nebula);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+}
+
+.wysiwyg-editor .stat-label {
+    font-size: 0.75rem;
+    color: var(--editor-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+/* Информация о форматах */
+.wysiwyg-editor .format-info {
+    background: var(--editor-surface);
+    border: 1px solid var(--editor-border);
+    border-radius: 16px;
+    padding: 20px;
+    backdrop-filter: blur(10px);
+}
+
+.wysiwyg-editor .format-info strong {
+    color: var(--editor-text);
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: block;
+    font-size: 0.9rem;
+}
+
+.wysiwyg-editor .formats-display {
+    color: var(--editor-text-secondary);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    padding: 12px 16px;
+    background: var(--editor-hover);
+    border-radius: 12px;
+    border: 1px solid var(--editor-border);
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+}
+
+/* Анимации */
+@keyframes cosmic-float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-5px); }
+}
+
+@keyframes starlight-twinkle {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+}
+
+@keyframes nebula-pulse {
+    0%, 100% { transform: scale(1); opacity: 0.3; }
+    50% { transform: scale(1.05); opacity: 0.5; }
+}
+
+.wysiwyg-editor .stat-item {
+    animation: cosmic-float 6s ease-in-out infinite;
+}
+
+.wysiwyg-editor .stat-item:nth-child(2) {
+    animation-delay: -2s;
+}
+
+.wysiwyg-editor .stat-item:nth-child(3) {
+    animation-delay: -4s;
+}
+
+.wysiwyg-editor::before {
+    animation: nebula-pulse 8s ease-in-out infinite;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .wysiwyg-editor .card-header {
+        padding: 20px 24px 0;
+    }
+
+    .wysiwyg-editor .editor-container {
+        padding: 24px;
+    }
+
+    .wysiwyg-editor .stats-section {
+        padding: 20px 24px;
+    }
+
+    .wysiwyg-editor .action-bar {
+        gap: 8px;
+    }
+
+    .wysiwyg-editor .action-bar .btn {
+        padding: 8px 16px;
+        font-size: 0.8rem;
+    }
+
+    .wysiwyg-editor .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+    }
+
+    .wysiwyg-editor .stat-item {
+        padding: 16px;
+    }
+
+    .wysiwyg-editor .stat-value {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .wysiwyg-editor {
+        border-radius: 16px;
+    }
+
+    .wysiwyg-editor .card-header {
+        padding: 16px 20px 0;
+    }
+
+    .wysiwyg-editor .editor-container {
+        padding: 20px;
+    }
+
+    .wysiwyg-editor .stats-section {
+        padding: 16px 20px;
+    }
+
+    .wysiwyg-editor .action-bar {
+        flex-direction: column;
+    }
+
+    .wysiwyg-editor .action-bar .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .wysiwyg-editor .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+}
+
 /* Исправление для курсора в Quill */
 .ql-editor {
-    caret-color: auto !important;
+    caret-color: var(--cosmic-primary) !important;
 }
 
 .ql-editor p {
@@ -16,6 +516,145 @@
 
 /* Корректное отображение пустых строк */
 .ql-editor .ql-blank::before {
-    left: 15px !important;
-    right: 15px !important;
+    left: 0 !important;
+    right: 0 !important;
+    color: var(--editor-text-secondary) !important;
+}
+
+/* Стили для выделенного текста */
+.ql-editor ::selection {
+    background: var(--cosmic-primary-glow) !important;
+    color: inherit !important;
+}
+
+.ql-editor ::-moz-selection {
+    background: var(--cosmic-primary-glow) !important;
+    color: inherit !important;
+}
+
+/* Кастомные стили для элементов Quill */
+.ql-snow .ql-tooltip {
+    background: var(--editor-surface) !important;
+    border: 1px solid var(--editor-border) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2) !important;
+    color: var(--editor-text) !important;
+}
+
+.ql-snow .ql-tooltip input[type="text"] {
+    background: var(--editor-hover) !important;
+    border: 1px solid var(--editor-border) !important;
+    border-radius: 8px !important;
+    color: var(--editor-text) !important;
+}
+
+.ql-snow .ql-tooltip a.ql-preview {
+    color: var(--cosmic-primary) !important;
+}
+
+.ql-snow .ql-tooltip a.ql-action::after {
+    color: var(--editor-text-secondary) !important;
+}
+
+/* Анимация загрузки */
+.wysiwyg-editor .loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: var(--editor-text);
+}
+
+.wysiwyg-editor .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--editor-border);
+    border-top: 3px solid var(--cosmic-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
+}
+
+.wysiwyg-editor .loading-text {
+    color: var(--editor-text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Состояние ошибки */
+.wysiwyg-editor .error-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--editor-text);
+}
+
+.wysiwyg-editor .error-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    opacity: 0.7;
+}
+
+.wysiwyg-editor .error-title {
+    color: var(--editor-text);
+    margin-bottom: 12px;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.wysiwyg-editor .error-message {
+    color: var(--editor-text-secondary);
+    margin-bottom: 8px;
+}
+
+.wysiwyg-editor .error-solution {
+    color: var(--editor-text-secondary);
+    margin-bottom: 24px;
+    font-size: 0.9rem;
+}
+
+/* Темная тема - дополнительные стили */
+[data-theme="dark"] .wysiwyg-editor .ql-toolbar {
+    background: rgba(26, 26, 46, 0.8);
+}
+
+[data-theme="dark"] .wysiwyg-editor .stat-item,
+[data-theme="dark"] .wysiwyg-editor .format-info {
+    background: rgba(26, 26, 46, 0.6);
+}
+
+[data-theme="dark"] .wysiwyg-editor .action-bar .btn {
+    background: rgba(26, 26, 46, 0.6);
+}
+
+/* Эффекты свечения для темной темы */
+[data-theme="dark"] .wysiwyg-editor .stat-item:hover,
+[data-theme="dark"] .wysiwyg-editor .action-bar .btn:hover {
+    box-shadow: 0 8px 32px var(--cosmic-primary-glow);
+}
+
+/* Плавные переходы */
+.wysiwyg-editor * {
+    transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Улучшенная доступность */
+@media (prefers-reduced-motion: reduce) {
+    .wysiwyg-editor .stat-item,
+    .wysiwyg-editor::before,
+    .wysiwyg-editor .action-bar .btn {
+        animation: none;
+        transition: none;
+    }
+}
+
+/* Высокий контраст */
+@media (prefers-contrast: high) {
+    .wysiwyg-editor {
+        --editor-border: var(--editor-text);
+    }
+
+    .wysiwyg-editor .stat-item,
+    .wysiwyg-editor .format-info {
+        border-width: 2px;
+    }
 }
