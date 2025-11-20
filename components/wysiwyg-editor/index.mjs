@@ -296,9 +296,14 @@ export class WysiwygEditor extends BaseComponent {
         this._controller = await controller(this);
         this._actions = await createActions(this);
 
-        await this.fullRender(this.state);
+        // Инициализация темы из атрибута или сохраненного состояния
+        const savedTheme = localStorage.getItem('wysiwyg-theme') || this.getAttribute('theme') || 'light';
+        this.state.theme = savedTheme;
 
-        // Инициализация редактора
+        // Применяем тему
+        document.documentElement.setAttribute('data-theme', this.state.theme);
+
+        await this.fullRender(this.state);
         await this._initEditor();
 
         return true;

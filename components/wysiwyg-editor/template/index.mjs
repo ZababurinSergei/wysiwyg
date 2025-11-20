@@ -48,7 +48,8 @@ export async function defaultTemplate({ state = {} }) {
                             <span>📝</span> Export Text
                         </button>
                         <button class="btn btn-warning theme-toggle" title="Toggle Theme">
-                            <span>🌓</span> Theme
+                            <span>${theme === 'light' ? '🌙' : '☀️'}</span> 
+                            ${theme === 'light' ? 'Dark' : 'Light'} Mode
                         </button>
                         <button class="btn btn-danger clear-editor" title="Clear Editor" ${readOnly ? 'disabled' : ''}>
                             <span>🗑️</span> Clear
@@ -208,7 +209,8 @@ export async function toolbarTemplate({ state = {} }) {
                     <span>📝</span> Export Text
                 </button>
                 <button class="btn btn-warning theme-toggle" title="Toggle Theme">
-                    <span>🌓</span> Theme
+                    <span>${theme === 'light' ? '🌙' : '☀️'}</span> 
+                    ${theme === 'light' ? 'Dark' : 'Light'} Mode
                 </button>
                 <button class="btn btn-danger clear-editor" title="Clear Editor" ${readOnly ? 'disabled' : ''}>
                     <span>🗑️</span> Clear

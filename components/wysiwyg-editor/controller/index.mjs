@@ -46,6 +46,13 @@ export const controller = (context) => {
                 return;
             }
 
+            const themeToggle = context.shadowRoot.querySelector('.theme-toggle');
+            if (themeToggle) {
+                addEventListener(themeToggle, 'click', () => {
+                    context._actions.toggleTheme();
+                });
+            }
+
             // Сохраняем выделение при изменении
             context.quill.on('selection-change', (range, oldRange, source) => {
                 console.log('---------- selection-change --------------', range)

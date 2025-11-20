@@ -40,6 +40,7 @@ async function getContent(format = 'html') {
     }
 }
 
+
 async function setContent(content, format = 'html') {
     if (!this.quill) return;
 
@@ -467,6 +468,8 @@ async function exportContent(format = 'html') {
 async function toggleTheme() {
     try {
         const newTheme = this.state.theme === 'light' ? 'dark' : 'light';
+
+        // Обновляем тему в компоненте
         await this.updateElement({
             selector: '.wysiwyg-editor',
             value: newTheme,
@@ -474,13 +477,30 @@ async function toggleTheme() {
             action: 'set'
         });
 
+        // Обновляем состояние
         this.state.theme = newTheme;
 
-        // Отправляем сообщение о изменении темы
-        await this._sendContentChangedMessage({
-            type: 'theme-changed',
-            theme: newTheme
-        });
+        // Также обновляем тему для всего документа
+        document.documentElement.setAttribute('data-theme', newTheme);
+
+        // Сохраняем выбор темы
+        localStorage.setItem('wysiwyg-theme', newTheme);
+
+        // Обновляем текст кнопки темы
+        const themeButton = this.shadowRoot.querySelector('.theme-toggle');
+        if (themeButton) {
+            const themeIcon = themeButton.querySelector('span');
+            if (themeIcon) {
+                themeIcon.textContent = newTheme === 'light' ? '🌙' : '☀️';
+            }
+            const themeText = themeButton.querySelector('.theme-text');
+            if (themeText) {
+                themeText.textContent = newTheme === 'light' ? 'Dark Mode' : 'Light Mode';
+            }
+        }
+
+        // Временное решение - убираем вызов несуществующего метода
+        console.log(`Тема изменена на: ${newTheme}`);
 
     } catch (error) {
         console.error('Ошибка переключения темы:', error);

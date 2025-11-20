@@ -1740,7 +1740,8 @@ async function defaultTemplate({ state = {} }) {
                             <span>\u{1F4DD}</span> Export Text
                         </button>
                         <button class="btn btn-warning theme-toggle" title="Toggle Theme">
-                            <span>\u{1F313}</span> Theme
+                            <span>${theme === "light" ? "\u{1F319}" : "\u2600\uFE0F"}</span> 
+                            ${theme === "light" ? "Dark" : "Light"} Mode
                         </button>
                         <button class="btn btn-danger clear-editor" title="Clear Editor" ${readOnly ? "disabled" : ""}>
                             <span>\u{1F5D1}\uFE0F</span> Clear
@@ -1858,7 +1859,8 @@ async function toolbarTemplate({ state = {} }) {
                     <span>\u{1F4DD}</span> Export Text
                 </button>
                 <button class="btn btn-warning theme-toggle" title="Toggle Theme">
-                    <span>\u{1F313}</span> Theme
+                    <span>${theme === "light" ? "\u{1F319}" : "\u2600\uFE0F"}</span> 
+                    ${theme === "light" ? "Dark" : "Light"} Mode
                 </button>
                 <button class="btn btn-danger clear-editor" title="Clear Editor" ${readOnly ? "disabled" : ""}>
                     <span>\u{1F5D1}\uFE0F</span> Clear
@@ -2071,6 +2073,12 @@ var controller = /* @__PURE__ */ __name((context2) => {
       if (!context2.quill) {
         console.warn("Quill \u043D\u0435 \u0438\u043D\u0438\u0446\u0438\u0430\u043B\u0438\u0437\u0438\u0440\u043E\u0432\u0430\u043D");
         return;
+      }
+      const themeToggle = context2.shadowRoot.querySelector(".theme-toggle");
+      if (themeToggle) {
+        addEventListener(themeToggle, "click", () => {
+          context2._actions.toggleTheme();
+        });
       }
       context2.quill.on("selection-change", (range, oldRange, source) => {
         console.log("---------- selection-change --------------", range);
@@ -2591,10 +2599,20 @@ async function toggleTheme() {
       action: "set"
     });
     this.state.theme = newTheme;
-    await this._sendContentChangedMessage({
-      type: "theme-changed",
-      theme: newTheme
-    });
+    document.documentElement.setAttribute("data-theme", newTheme);
+    localStorage.setItem("wysiwyg-theme", newTheme);
+    const themeButton = this.shadowRoot.querySelector(".theme-toggle");
+    if (themeButton) {
+      const themeIcon = themeButton.querySelector("span");
+      if (themeIcon) {
+        themeIcon.textContent = newTheme === "light" ? "\u{1F319}" : "\u2600\uFE0F";
+      }
+      const themeText = themeButton.querySelector(".theme-text");
+      if (themeText) {
+        themeText.textContent = newTheme === "light" ? "Dark Mode" : "Light Mode";
+      }
+    }
+    console.log(`\u0422\u0435\u043C\u0430 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0430 \u043D\u0430: ${newTheme}`);
   } catch (error) {
     console.error("\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u0435\u0440\u0435\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u044F \u0442\u0435\u043C\u044B:", error);
     await this.addError({
@@ -3025,6 +3043,9 @@ var WysiwygEditor = class extends BaseComponent {
   async _componentReady() {
     this._controller = await controller(this);
     this._actions = await createActions(this);
+    const savedTheme = localStorage.getItem("wysiwyg-theme") || this.getAttribute("theme") || "light";
+    this.state.theme = savedTheme;
+    document.documentElement.setAttribute("data-theme", this.state.theme);
     await this.fullRender(this.state);
     await this._initEditor();
     return true;
